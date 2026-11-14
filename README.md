@@ -1,6 +1,10 @@
-# H4M Auto Repeater + Meshtastic
+# Mayhem Firmware - Repeater + Meshtastic Fork
 
-Latest test build: [ar05 downloads and changes](https://github.com/Nhscan/H4M-Repeater-Meshtastic/releases/tag/ar05). Includes the complete SD-card and Windows flash package.
+A fork of [PortaPack Mayhem](https://github.com/portapack-mayhem/mayhem-firmware) with Auto Repeater and experimental Meshtastic apps for **HackRF One + PortaPack H4M**. The complete modified source, build instructions and credits are included.
+
+**Start here:** [Download and flash](#download-and-install-ar05) | [Meshtastic setup](#meshtastic-setup-and-keys) | [Import a key](#import-a-key-from-the-sd-card) | [Troubleshooting](#meshtastic-troubleshooting) | [Changes](CHANGELOG.md)
+
+Latest test build: [ar05 downloads and changes](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/tag/ar05). Includes the complete SD-card and Windows flash package.
 
 Community test firmware for **HackRF One + PortaPack H4M**, based on Mayhem nightly **n_261109**.
 
@@ -32,7 +36,7 @@ A native Meshtastic client that runs entirely on the HackRF, using software-defi
 
 ## Download and install ar05
 
-**[Download the complete SD-card and Windows flash package](https://github.com/Nhscan/H4M-Repeater-Meshtastic/releases/download/ar05/H4M-Meshtastic-ar05-SD-and-Flash.zip)**
+**[Download the complete SD-card and Windows flash package](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/download/ar05/H4M-Meshtastic-ar05-SD-and-Flash.zip)**
 
 Firmware version **`n_261109_ar05`**. This community test package contains matching APPS, BASEBAND, firmware, Windows USB tools/drivers, instructions and checksums. [Release notes](docs/h4m/AR05-RELEASE-NOTES.md) | [Changelog](CHANGELOG.md)
 
@@ -45,7 +49,7 @@ Use the corrected **FIX** archive supplied in the release. Earlier ar05 packagin
 
 **Windows USB alternative:** Copy the SD files first. Connect USB, select **HackRF mode** on the PortaPack, and run **USB_FLASH_WINDOWS/START_H4M.bat**. It backs up flash, writes ar05 and verifies a byte-for-byte read-back. Wait for SUCCESS before restarting. Older custom v0.2.x builds require USB because they lack the internal updater.
 
-Use this build's matching **104 PPMA apps**, two standalone apps and BASEBAND files. Mixing builds can cause app compatibility errors. [Previous v0.3.1 release](https://github.com/Nhscan/H4M-Repeater-Meshtastic/releases/tag/v0.3.1)
+Use this build's matching **104 PPMA apps**, two standalone apps and BASEBAND files. Mixing builds can cause app compatibility errors. [Previous v0.3.1 release](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/tag/v0.3.1)
 
 ## Auto Repeater
 
@@ -68,6 +72,20 @@ A capture with real sample gaps is saved and counted as **SKIP**, then Auto retu
 For a first test, choose one known RX frequency, disable hopping, keep Save checked, and use **Settings → Auto level** with the remote quiet. Watch the **REC / TX / SKIP** counts.
 
 ## Meshtastic setup and keys
+
+### First connection checklist
+
+1. Install the complete ar05 SD-card and firmware package, then verify the version in About.
+2. Connect a suitable antenna before transmitting and choose a permitted frequency for your location.
+3. Open **Transceivers / TRX > Meshtastic** on the PortaPack.
+4. In Setup, match the other node's radio settings. Verify the actual center frequency, rather than relying on the channel label alone.
+5. On the standard node, an ordinary **CLIENT** role is suitable for chatting. It already acts as a mesh node. A special router role is not needed for this two-radio test.
+6. Start with short channel messages addressed to **>All**. Configure a custom channel and the same PSK on both radios for a private channel.
+7. Confirm a received text on each radio using the two-way test below.
+
+No account or server registration is needed for direct LoRa messages. The standard web client configures the connected node. MQTT/internet connectivity is optional and separate from local radio communication.
+
+The HackRF can tune a wide range, but the other node's RF hardware and antenna still determine its usable band. A 433/470 MHz LILYGO does not become a 915 MHz node by changing its software region. Our 433.125 MHz bench setting is a test record, not a universal regional default.
 
 ### Match both radios
 
@@ -154,6 +172,23 @@ A green custom-channel padlock indicates a key is configured. Successful message
 
 **Receive limitations:** SF12 reception is disabled. The SF7 ring holds 92 symbols and can truncate long packets. SF8-11 timing and broader RF interoperability need further testing. [Additional Meshtastic background](docs/h4m/MESHTASTIC.md).
 
+### Meshtastic troubleshooting
+
+| What you see | What to check |
+| --- | --- |
+| Transmission on an SDR but no received text | Match frequency, bandwidth, SF, coding rate, exact channel name and PSK. Confirm the selected conversation and destination. |
+| Location or NodeInfo appears but chat does not | Radio communication is partly working. Check the text channel's name/hash/key and whether you are using a channel or a direct message. |
+| Green padlock but no messages | The lock only indicates a configured key. Re-copy the same PSK and verify two-way delivery. |
+| Key requested | This concerns the other node's public-key exchange for direct messages. Use your custom channel with >All to test the shared channel PSK separately. |
+| Import key does nothing | Highlight an enabled custom channel. Use a key-only .TXT in a supported encoding, without BOM, labels or spaces. Ar05 has no import-error dialog. |
+| Open channel cannot decode | Both sides must use a truly empty PSK. The default AQ== public key is still an encryption key and differs from no key. |
+| Old or outdated PPMA error | Copy APPS and BASEBAND from the same ar05 release as the firmware. |
+| BAD FIRMWARE FILE OR W/R ERR during TAR flashing | Use H4M_AR05_FIX.ppfw.tar from the corrected package. Check the download checksum and SD-card copy. The Windows launcher provides an alternative with read-back verification. |
+| One direction works or messages arrive intermittently | Check TX/RX mode, antenna, frequency and receive gain. Separate nearby radios to reduce overload. Repeat short messages in each direction and record which ones arrive. |
+| Long messages fail while short ones work | Receiver buffering is limited, particularly at SF7. Start with short texts and report preset, length and direction. |
+
+For a bug report, include firmware version, hardware, preset, actual frequency, channel name, key format/length (not the private key itself), direction and the exact error. Describe whether the opposite radio displayed the message. Report results in your test thread or a pull request if repository Issues are unavailable.
+
 ## Signal and file limitations
 
 Raw IQ repeats a recorded waveform; protocol recognition is not required for raw recording. OOK recognition identifies supported frame formats, not every manufacturer/model. It does not decrypt or synthesize rolling codes, and replay acceptance is not guaranteed.
@@ -181,8 +216,8 @@ Ar05 also incorporates upstream changes through `2b7e3b4023b46d4e2c557ffa205a1e0
 Use GNU Arm Embedded **GCC 9.2.1**, Ninja and the dependencies listed in [BUILD.txt](docs/h4m/BUILD.txt):
 
 ```sh
-git clone --recurse-submodules --branch next https://github.com/Nhscan/H4M-Repeater-Meshtastic.git
-cd H4M-Repeater-Meshtastic
+git clone --recurse-submodules --branch next https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork.git
+cd mayhem-firmware-Repeater-Meshtastic-fork
 python3 tools/update_external_tier_ld.py
 cmake -S . -B build -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
   -DMAYHEM_CUSTOM_VERSION=n_261109_ar05
