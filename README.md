@@ -2,9 +2,9 @@
 
 A fork of [PortaPack Mayhem](https://github.com/portapack-mayhem/mayhem-firmware) with Auto Repeater and experimental Meshtastic apps for **HackRF One + PortaPack H4M**. The complete modified source, build instructions and credits are included.
 
-**Start here:** [Download and flash](#download-and-install-ar05) | [Meshtastic setup](#meshtastic-setup-and-keys) | [Import a key](#import-a-key-from-the-sd-card) | [Troubleshooting](#meshtastic-troubleshooting) | [Changes](CHANGELOG.md)
+**Start here:** [Download and flash](#download-and-install-ar06) | [Meshtastic setup](#meshtastic-setup-and-keys) | [Import a key](#import-a-key-from-the-sd-card) | [Troubleshooting](#meshtastic-troubleshooting) | [Changes](CHANGELOG.md)
 
-Latest test build: [ar05 downloads and changes](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/tag/ar05). Includes the complete SD-card and Windows flash package.
+Latest tested build: [ar06 Meshtastic Settings fix](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/tag/ar06).
 
 Community test firmware for **HackRF One + PortaPack H4M**, based on Mayhem nightly **n_261109**.
 
@@ -33,6 +33,14 @@ A native Meshtastic client that runs entirely on the HackRF, using software-defi
 | Meshtastic chat | Meshtastic radio setup |
 |:---:|:---:|
 | ![Meshtastic chat tab](docs/h4m/media/04-meshtastic-chat.png) | ![Meshtastic radio setup](docs/h4m/media/05-meshtastic-radio.png) |
+
+## Download and install ar06
+
+1. Download [H4M_AR06.ppfw.tar](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/download/ar06/H4M_AR06.ppfw.tar) and copy it intact into the SD card's `FIRMWARE` folder.
+2. On a HackRF One + PortaPack H4M running ar05, open Flash Utility and select the TAR.
+3. After reboot, verify that About shows **n_261109_ar06**.
+
+The update includes matching apps and baseband images. The owner confirmed that the Meshtastic Settings fix works on their H4M.
 
 ## Download and install ar05
 
@@ -75,7 +83,7 @@ For a first test, choose one known RX frequency, disable hopping, keep Save chec
 
 ### First connection checklist
 
-1. Install the complete ar05 SD-card and firmware package, then verify the version in About.
+1. Install the current firmware and matching SD apps, then verify the version in About.
 2. Connect a suitable antenna before transmitting and choose a permitted frequency for your location.
 3. Open **Transceivers / TRX > Meshtastic** on the PortaPack.
 4. In Setup, match the other node's radio settings. Verify the actual center frequency, rather than relying on the channel label alone.
@@ -182,7 +190,7 @@ A green custom-channel padlock indicates a key is configured. Successful message
 | Key requested | This concerns the other node's public-key exchange for direct messages. Use your custom channel with >All to test the shared channel PSK separately. |
 | Import key does nothing | Highlight an enabled custom channel. Use a key-only .TXT in a supported encoding, without BOM, labels or spaces. Ar05 has no import-error dialog. |
 | Open channel cannot decode | Both sides must use a truly empty PSK. The default AQ== public key is still an encryption key and differs from no key. |
-| Old or outdated PPMA error | Copy APPS and BASEBAND from the same ar05 release as the firmware. |
+| Old or outdated PPMA error | Copy APPS and BASEBAND from the same release as the firmware. |
 | BAD FIRMWARE FILE OR W/R ERR during TAR flashing | Use H4M_AR05_FIX.ppfw.tar from the corrected package. Check the download checksum and SD-card copy. The Windows launcher provides an alternative with read-back verification. |
 | One direction works or messages arrive intermittently | Check TX/RX mode, antenna, frequency and receive gain. Separate nearby radios to reduce overload. Repeat short messages in each direction and record which ones arrive. |
 | Long messages fail while short ones work | Receiver buffering is limited, particularly at SF7. Start with short texts and report preset, length and direction. |
@@ -220,11 +228,11 @@ git clone --recurse-submodules --branch next https://github.com/Nhscan/mayhem-fi
 cd mayhem-firmware-Repeater-Meshtastic-fork
 python3 tools/update_external_tier_ld.py
 cmake -S . -B build -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-  -DMAYHEM_CUSTOM_VERSION=n_261109_ar05
+  -DMAYHEM_CUSTOM_VERSION=n_261109_ar06
 cmake --build build --target oci -j6
 python3 tests/auto_repeater/check_layout.py build
 python3 tests/auto_repeater/check_runtime_memory.py build
-python3 tests/auto_repeater/check_install.py build n_261109_ar05
+python3 tests/auto_repeater/check_install.py build n_261109_ar06
 ```
 
 The custom version is cached so CMake regeneration does not silently change app compatibility. The internal flash writer **PFUT** is included in SPI alongside the LoRa and factory images.

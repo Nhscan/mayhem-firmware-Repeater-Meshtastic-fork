@@ -1,5 +1,11 @@
 # Changelog
 
+## ar06 - 2026-11-19
+
+Fixed an out-of-memory crash when opening Meshtastic Settings pages, including Profile. The map now checks for memory when opened, leaving approximately 3.7 KB available to other pages. If memory is fragmented, opening the map can require reopening Meshtastic.
+
+The owner confirmed the fix on a HackRF One + PortaPack H4M. The build passed layout, runtime memory, install and update archive checks, including checksums for the firmware and all 104 matching external apps.
+
 ## ar05 - 2026-11-13
 
 Test firmware `n_261109_ar05` for HackRF One + PortaPack H4M.
