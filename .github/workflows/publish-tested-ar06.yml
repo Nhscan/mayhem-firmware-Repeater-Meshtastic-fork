@@ -1,0 +1,77 @@
+name: Publish hardware-tested H4M ar06
+on:
+  push:
+    branches: ['publish/ar06']
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: next
+          fetch-depth: 0
+      - name: Verify tested artifact and prepare release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          cd "$work"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14597240792/zip" > tested.zip
+          echo '7c989f9ed7041dc6c841396a1836fad95c7533b1a4f413ed313a8cebf3f99162  tested.zip' | sha256sum -c -
+          unzip -q tested.zip
+          sha256sum -c SHA256SUMS.txt
+          cd "$GITHUB_WORKSPACE"
+          git fetch origin build/meshtastic-settings-memory-ar06
+          git show b86591a3f929a19bc549f273bb66f5ab71b1398e:ci/ar06-memory.patch > "$work/memory.patch"
+          git apply --check "$work/memory.patch"
+          git apply "$work/memory.patch"
+          python3 tests/auto_repeater/check_update_archive.py "$work/H4M_AR06.ppfw.tar" n_261109_ar06
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('README.md')
+          s = p.read_text()
+          s = s.replace('#download-and-install-ar05)', '#download-and-install-ar06)')
+          base = 'https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases'
+          a = s.index('Latest test build:')
+          b = s.index('\n', a)
+          s = s[:a] + f'Latest tested build: [ar06 Meshtastic Settings fix]({base}/tag/ar06).' + s[b:]
+          heading = '## Download and install ar05'
+          assert heading in s
+          s = s.replace(heading, f"""## Download and install ar06
+
+          1. Download [H4M_AR06.ppfw.tar]({base}/download/ar06/H4M_AR06.ppfw.tar) and copy it intact into the SD card's `FIRMWARE` folder.
+          2. On a HackRF One + PortaPack H4M running ar05, open Flash Utility and select the TAR.
+          3. After reboot, verify that About shows **n_261109_ar06**.
+
+          The update includes matching apps and baseband images. The owner confirmed that the Meshtastic Settings fix works on their H4M.
+
+          ## Download and install ar05""")
+          s = s.replace('Install the complete ar05 SD-card and firmware package, then verify the version in About.', 'Install the current firmware and matching SD apps, then verify the version in About.')
+          s = s.replace('from the same ar05 release as the firmware.', 'from the same release as the firmware.')
+          s = s.replace('-DMAYHEM_CUSTOM_VERSION=n_261109_ar05','-DMAYHEM_CUSTOM_VERSION=n_261109_ar06').replace('check_install.py build n_261109_ar05','check_install.py build n_261109_ar06')
+          p.write_text(s)
+          p = Path('CHANGELOG.md')
+          s = p.read_text()
+          pos = s.index('## ar05')
+          p.write_text(s[:pos]+'''## ar06 - 2026-11-19
+
+          Fixed an out-of-memory crash when opening Meshtastic Settings pages, including Profile. The map now checks for memory when opened, leaving approximately 3.7 KB available to other pages. If memory is fragmented, opening the map can require reopening Meshtastic.
+
+          The owner confirmed the fix on a HackRF One + PortaPack H4M. The build passed layout, runtime memory, install and update archive checks, including checksums for the firmware and all 104 matching external apps.
+
+          '''+s[pos:])
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add firmware/application/apps/ui_meshtastic.cpp README.md CHANGELOG.md
+          git diff --cached --check
+          git commit -m 'Fix Meshtastic Settings memory pressure and document tested ar06 firmware'
+          git push origin HEAD:next
+          git tag ar06
+          git push origin refs/tags/ar06
+          gh release create ar06 "$work/H4M_AR06.ppfw.tar" "$work/SHA256SUMS.txt" --verify-tag --title "ar06 — Meshtastic Settings memory fix" --notes 'Hardware-tested firmware for HackRF One + PortaPack H4M. Fixes the out-of-memory crash when opening Settings pages such as Profile. Copy H4M_AR06.ppfw.tar intact to the SD card FIRMWARE folder, select it in Flash Utility, then check About for n_261109_ar06. Includes matching apps and baseband images. The owner confirmed the fix on their H4M.'
+          gh release view ar06 --json url,assets
