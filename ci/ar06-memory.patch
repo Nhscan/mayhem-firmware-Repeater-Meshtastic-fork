@@ -1,0 +1,92 @@
+--- a/firmware/application/apps/ui_meshtastic.cpp
++++ b/firmware/application/apps/ui_meshtastic.cpp
+@@ -483,55 +483,9 @@
+ // it was reported.
+ MeshtasticChatView* g_chat = nullptr;
+ 
+-// A block the size of the map view, taken while the memory is still whole and held
+-// until the map wants it. Three kilobytes of settings pages opened and closed leave
+-// the heap in pieces none of which is big enough, so the map stopped opening after a
+-// few minutes of ordinary use - not because the memory was gone, but because it was
+-// in the wrong shape. Reserving costs the room permanently and buys a map that always
+-// opens, which is the better trade for a button that exists.
+-void* g_map_reserve = nullptr;
+-
+-// Hand the reservation back to the allocator so the push that follows takes it. The
+-// free list is address-ordered and this is the only block of its size, so the very
+-// next request of that size gets it.
+-static void map_reserve_take() {
+-    if (g_map_reserve) {
+-        chHeapFree(g_map_reserve);
+-        g_map_reserve = nullptr;
+-    }
+-}
+-
+-// A block the size of the map view, taken while the heap is still whole and held until
+-// the map wants it. The map needs 3736 bytes in one piece, and after a few settings
+-// pages have been opened and closed the largest free block is about 1400 - not because
+-// the memory is gone (eight kilobytes are free) but because it is in pieces.
+-//
+-// Tried once before and reverted: at that point the app left 4920 bytes of core, and
+-// holding 3736 of them starved the settings pages - "want 1412 free 744", and a walk
+-// through the app ended with twenty-four bytes left. Two entries off the node table and
+-// the glyph tables staying unloaded moved the startup figure to 8640, which leaves
+-// 4904 after the reservation against the ~2550 the settings pages actually take. The
+-// numbers are the reason it is back, and the same numbers are what to check if it
+-// misbehaves again.
+-static void map_reserve_restore() {
+-    if (!g_map_reserve) g_map_reserve = chHeapAlloc(0x0, sizeof(GeoMapView));
+-}
+-
+ static bool map_would_fit(MeshtasticChatView* say_here) {
+     if (!say_here) say_here = g_chat;
+-    if (g_map_reserve) {
+-        map_reserve_take();
+-        return true;
+-    }
+-    // Ask the allocator, do not estimate. chCoreStatus() reports the core that has not
+-    // been carved up yet, which is not the same as the memory available: once a few
+-    // screens have been opened and closed the core is nearly all spoken for while the
+-    // heap holds plenty of freed blocks. Guarding on it refused a map that would have
+-    // opened perfectly well - and the one call site that had no guard proved it by
+-    // opening anyway.
+-    //
+-    // So take the exact block the view needs and give it straight back. Freeing puts it
+-    // at the head of the free list, so the push that follows gets the same block.
++    // Settings and chat share this heap. Check for a contiguous block only when opening the map.
+     void* probe = chHeapAlloc(0x0, sizeof(GeoMapView));
+     if (probe) {
+         chHeapFree(probe);
+@@ -2752,7 +2706,7 @@
+     auto* map = nav_.push<GeoMapView>(
+         tag, e->position.altitude_m,
+         GeoPos::alt_unit::METERS, GeoPos::spd_unit::HIDDEN,
+-        lat, lon, 999.0f, []() { map_reserve_restore(); });
++        lat, lon, 999.0f, nullptr);
+     map->clear_markers();
+     GeoMarker m;
+     m.lat = lat;
+@@ -3460,7 +3414,7 @@
+             static_cast<int32_t>(alt_),
+             GeoPos::alt_unit::METERS,
+             GeoPos::spd_unit::HIDDEN,
+-            center_lat, center_lon, 999.0f, []() { map_reserve_restore(); });
++            center_lat, center_lon, 999.0f, nullptr);
+ 
+         // Plot every known node with a GPS position as a green marker (up to
+         // the GeoMap 30-marker limit).
+@@ -5599,7 +5553,6 @@
+     // What a settings page is allowed to ask for. Wired once, here, and handed to
+     // every page by reference. A page asks for this when it closes, not on every
+     // encoder click, and the request only arms a timer here.
+-    map_reserve_restore();  // claim the map's room while the heap is still whole
+     hooks_.apply = [this]() { apply_delay_ = APPLY_DELAY_TICKS; };
+     hooks_.apply_radio = [this]() {
+         apply_delay_ = APPLY_DELAY_TICKS;
+@@ -5749,7 +5702,6 @@
+             map_view_.set_fixed_position(lat, lon, cfg_.telemetry.fixed_alt_m, cfg_.telemetry.fixed_sats);
+             refresh_own_position();  // broadcast + redraw
+             persist();
+-            map_reserve_restore();  // the picker is closing; take the room back
+         });
+ }
