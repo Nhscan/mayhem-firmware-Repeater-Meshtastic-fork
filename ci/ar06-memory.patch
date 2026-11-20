@@ -90,3 +90,4 @@
 -            map_reserve_restore();  // the picker is closing; take the room back
          });
  }
+ 
