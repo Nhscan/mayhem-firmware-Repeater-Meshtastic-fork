@@ -1,5 +1,11 @@
 # Changelog
 
+## ar08 - 2026-11-21
+
+H4M community test firmware `n_261121_ar08` incorporates the upstream November 21 nightly and the ar07 Meshtastic chat-history change. In Msg view, hidden status lines are discarded first when the history buffer is full. The ar06 Settings memory fix is included. Auto Repeater retains its record-only and automatic repeat modes.
+
+GitHub Actions passed the firmware layout, runtime memory, installation, and Flash Utility archive checks. On-device verification of this nightly build is pending. [Firmware and checksum](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/tag/ar08).
+
 ## ar06 - 2026-11-19
 
 Fixed an out-of-memory crash when opening Meshtastic Settings pages, including Profile. The map now checks for memory when opened, leaving approximately 3.7 KB available to other pages. If memory is fragmented, opening the map can require reopening Meshtastic.
