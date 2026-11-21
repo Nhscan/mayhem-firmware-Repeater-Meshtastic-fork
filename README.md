@@ -2,9 +2,9 @@
 
 A fork of [PortaPack Mayhem](https://github.com/portapack-mayhem/mayhem-firmware) with Auto Repeater and experimental Meshtastic apps for **HackRF One + PortaPack H4M**. The complete modified source, build instructions and credits are included.
 
-**Start here:** [Download and flash](#download-and-install-ar08) | [Auto Repeater quick start](#auto-repeater-quick-start) | [Meshtastic setup](#meshtastic-setup-and-keys) | [Import a key](#import-a-key-from-the-sd-card) | [Troubleshooting](#meshtastic-troubleshooting) | [Changes](CHANGELOG.md)
+**Start here:** [Download and flash](#download-and-install-ar09) | [Auto Repeater quick start](#auto-repeater-quick-start) | [Meshtastic setup](#meshtastic-setup-and-keys) | [Import a key](#import-a-key-from-the-sd-card) | [Troubleshooting](#meshtastic-troubleshooting) | [Changes](CHANGELOG.md)
 
-**Current H4M test firmware:** [Download H4M_AR08.ppfw.tar](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/download/ar08/H4M_AR08.ppfw.tar) · [Release notes and checksum](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/tag/ar08). Built on the [November 21 Mayhem nightly](https://github.com/portapack-mayhem/mayhem-firmware/releases/tag/nightly-tag-2026-11-21). GitHub checks the compiled package. On-device confirmation of ar08 is pending.
+**Current H4M test firmware:** [Download H4M_AR09.ppfw.tar](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/download/ar09/H4M_AR09.ppfw.tar) · [Release notes and checksum](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/tag/ar09). Built on the [November 21 Mayhem nightly](https://github.com/portapack-mayhem/mayhem-firmware/releases/tag/nightly-tag-2026-11-21). GitHub checks the compiled package. On-device confirmation of ar09 is pending.
 
 The [ar06 release](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/tag/ar06) is the previous H4M build with a hardware-confirmed Meshtastic Settings fix.
 
@@ -34,11 +34,11 @@ A native Meshtastic client that runs entirely on the HackRF, using software-defi
 |:---:|:---:|
 | ![Meshtastic chat tab](docs/h4m/media/04-meshtastic-chat.png) | ![Meshtastic radio setup](docs/h4m/media/05-meshtastic-radio.png) |
 
-## Download and install ar08
+## Download and install ar09
 
-1. Download [H4M_AR08.ppfw.tar](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/download/ar08/H4M_AR08.ppfw.tar). Keep the TAR intact and copy it into the SD card’s `FIRMWARE` folder. If you download the Actions ZIP instead, extract the ZIP once to get that TAR.
-2. On an H4M running this fork’s ar05 or ar06 firmware, open **Utilities > Flash Utility**, select **H4M_AR08.ppfw.tar**, and let the update finish.
-3. After restarting, open **About** and check for **n_261121_ar08**. The TAR includes the matching apps and baseband images.
+1. Download [H4M_AR09.ppfw.tar](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/releases/download/ar09/H4M_AR09.ppfw.tar). Keep the TAR intact and copy it into the SD card’s `FIRMWARE` folder. If you download the Actions ZIP instead, extract the ZIP once to get that TAR.
+2. On an H4M running this fork’s ar05, ar06 or ar08 firmware, open **Utilities > Flash Utility**, select **H4M_AR09.ppfw.tar**, and let the update finish.
+3. After restarting, open **About** and check for **n_261121_ar09**. The TAR includes the matching apps and baseband images.
 4. Open **Transceivers (TRX)** and select **Auto Repeater** or **Meshtastic**.
 
 Older v0.2.x builds can use the [ar05 Windows USB instructions](#download-and-install-ar05) to install the internal updater first.
@@ -189,7 +189,7 @@ A green custom-channel padlock indicates a key is configured. Successful message
 
 1. Select the same channel on both radios (primary LongFast or a matching custom channel).
 2. Send a short, distinctive text from your standard node and confirm the exact text appears on the PortaPack.
-3. Press **>>** in PortaPack chat, type another short message and press **OK**. Confirm it appears on the other node.
+3. Press **Write message** in PortaPack chat, type another short message and press **OK**. Confirm it appears on the other node.
 4. Repeat several times. A local sent entry or SDR transmission alone does not establish delivery.
 
 **Verified on ar05:** Import of a 256-bit Base64 key, the green custom-channel padlock and text reception in both directions with a LILYGO T3. Manual 256-bit typing, additional keys/presets and DM PKC still need hardware testing. Repeated-delivery reliability remains under investigation.
@@ -198,7 +198,13 @@ A green custom-channel padlock indicates a key is configured. Successful message
 
 ### LongFast chat on H4M
 
-Open the primary channel (**Ch:P**) and choose **>All** for a channel broadcast. The separate **All / Msg / Tec** button controls what appears on screen. Choose **Msg** to keep texts visible while background status updates arrive. In ar08, the app drops old status lines first when this view’s history fills. Once all retained lines are messages, newer messages can still push older ones out.
+Open the primary channel (**Ch:P**) and choose **>All** for a channel broadcast. The separate **All / Msg / Tec** button controls what appears on screen. Choose **Msg** for conversation text or **All** for text and radio events. In ar09 the chat has reserved space in all three views. Background events cannot gradually empty the conversation. New texts can eventually push out old wrapped rows.
+
+**History:** The encoder scrolls chat. **Setup > Chat > Lines** sets the live history size in wrapped screen rows. With SD saving off, switching threads restores recent messages from the app’s 16-message session buffer. For history across restarts, set **Save msgs** above zero and use a writable SD card. **Clear** in chat asks for confirmation and clears the display. **Clear history** under Setup removes saved history.
+
+**Frequency:** Open **Setup > Radio > Freq** for the PortaPack number pad. Use **Load** to pick a saved frequency, then confirm the desired value and unit. Use **Auto** on the Radio page to return to region, preset and slot tuning.
+
+**Navigation:** Use **Write message** along the bottom to compose. Channel, recipient and display filter sit directly above it. Settings pages have a full-width **Back** button near the bottom for D-pad or touch navigation.
 
 On each radio, send a distinct short text and check for those exact words on the other screen. A phone’s **Delivered to mesh** badge alone does not identify the H4M as the receiver. The earlier H4M LongFast test used US slot 17 at 906.125 MHz with the default channel key (`AQ==`); use your node’s actual frequency and channel settings for your own test.
 
@@ -241,20 +247,20 @@ Build checks cover the 1 MiB firmware checksum and version, the bundled PPMA ide
 
 This repository contains the complete modified firmware source. The original base is Mayhem tag [`nightly-tag-2026-11-09`](https://github.com/portapack-mayhem/mayhem-firmware/releases/tag/nightly-tag-2026-11-09), commit `706fd7f91e0318fc4643e8d31f5087ececb312c4`.
 
-Ar08 includes the November 21 nightly at `afc728338907a1dcbde26daf7f8b96152080015b` and the Meshtastic chat-history change.
+Ar09 includes the November 21 nightly at `afc728338907a1dcbde26daf7f8b96152080015b` and the Meshtastic chat-history change.
 
 Use GNU Arm Embedded **GCC 9.2.1**, Ninja and the dependencies listed in [BUILD.txt](docs/h4m/BUILD.txt):
 
 ```sh
-git clone --recurse-submodules --branch ar08 https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork.git
+git clone --recurse-submodules --branch ar09 https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork.git
 cd mayhem-firmware-Repeater-Meshtastic-fork
 python3 tools/update_external_tier_ld.py
 cmake -S . -B build -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-  -DMAYHEM_CUSTOM_VERSION=n_261121_ar08
+  -DMAYHEM_CUSTOM_VERSION=n_261121_ar09
 cmake --build build --target oci -j6
 python3 tests/auto_repeater/check_layout.py build
 python3 tests/auto_repeater/check_runtime_memory.py build
-python3 tests/auto_repeater/check_install.py build n_261121_ar08
+python3 tests/auto_repeater/check_install.py build n_261121_ar09
 ```
 
 The custom version is cached so CMake regeneration does not silently change app compatibility. The internal flash writer **PFUT** is included in SPI alongside the LoRa and factory images.
