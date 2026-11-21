@@ -383,7 +383,17 @@ void MeshConsole::new_line() {
     lines_.back().colour = writing_col_;
     lines_.back().mine = writing_mine_;
     cur_cols_ = 0;
-    while (lines_.size() > max_lines_) lines_.erase(lines_.begin());
+    while (lines_.size() > max_lines_) {
+        auto oldest = lines_.begin();
+        if (filter_ == 1) {
+            // Keep chat in message view. The last row is the active write buffer.
+            const auto active = lines_.end() - 1;
+            const auto tech = std::find_if(oldest, active,
+                                           [](const decltype(lines_)::value_type& row) { return row.tech; });
+            if (tech != active) oldest = tech;
+        }
+        lines_.erase(oldest);
+    }
 }
 
 void MeshConsole::visible_lines(std::vector<size_t>& out) const {
