@@ -8,6 +8,7 @@
 #include "ui_meshtastic.hpp"
 #include "mesh/mesh_channel_key.hpp"
 #include "ui_fileman.hpp"
+#include "ui_receiver.hpp"
 #include "ui_qrcode.hpp"
 #include "debug.hpp"
 #include "ch.h"
@@ -377,23 +378,21 @@ MeshConsole::MeshConsole(Rect parent_rect)
 }
 
 void MeshConsole::new_line() {
+    // Keep three rows available for recent radio events. Idle traffic can never
+    // reduce the chat quota, regardless of which filter is selected.
+    const auto is_chat = [](const Line& row) { return !row.tech; };
+    if (!writing_tech_ && static_cast<size_t>(std::count_if(lines_.begin(), lines_.end(), is_chat)) > max_lines_ - 4) {
+        lines_.erase(std::find_if(lines_.begin(), lines_.end(), is_chat));
+    } else if (lines_.size() >= max_lines_) {
+        const auto tech = std::find_if(lines_.begin(), lines_.end(), [](const Line& row) { return row.tech; });
+        lines_.erase(tech == lines_.end() ? lines_.begin() : tech);
+    }
     lines_.emplace_back();
     lines_.back().tech = writing_tech_;
     lines_.back().msg = pending_msg_;
     lines_.back().colour = writing_col_;
     lines_.back().mine = writing_mine_;
     cur_cols_ = 0;
-    while (lines_.size() > max_lines_) {
-        auto oldest = lines_.begin();
-        if (filter_ == 1) {
-            // Keep chat in message view. The last row is the active write buffer.
-            const auto active = lines_.end() - 1;
-            const auto tech = std::find_if(oldest, active,
-                                           [](const decltype(lines_)::value_type& row) { return row.tech; });
-            if (tech != active) oldest = tech;
-        }
-        lines_.erase(oldest);
-    }
 }
 
 void MeshConsole::visible_lines(std::vector<size_t>& out) const {
@@ -1395,7 +1394,7 @@ void MeshConsole::write_tech_col(const std::string& utf8, uint8_t colour) {
 }
 
 void MeshConsole::write(const std::string& utf8) {
-    scroll_back_ = 0;  // a new message snaps the view back to the newest line
+    if (!(writing_tech_ && filter_ == 1)) scroll_back_ = 0;
     // The first line of this write inherits the flags; new_line() carries them on.
     // "mine" among them, and it has to be re-stated here: the newline that ends one of
     // our own messages creates the next line while the flag is still set, so that empty
@@ -1604,7 +1603,8 @@ bool MeshConsole::on_key(const KeyEvent) {
 
 bool MeshConsole::on_encoder(const EncoderEvent delta) {
     if (delta == 0) return true;
-    const size_t n = lines_.size();
+    visible_lines(vis_buf_);
+    const size_t n = vis_buf_.size();
     const size_t max_back = (n > visible_) ? n - visible_ : 0;
     // Turning the encoder the way a page scrolls down moves toward newer messages and
     // takes the scrollbar thumb down with it - the other way round felt inverted
@@ -1737,10 +1737,9 @@ MeshtasticChatView::MeshtasticChatView(NavigationView& nav,
                     // sent while the radio cannot hear an answer.
                     m.expects_ack = unicast && (radio_mode_ != 1);
                     m.to_id = dest_id_;
-                    messages_.push_back(m);
+                    m.channel = channel_idx_;
+                    remember(m);
                     console_.set_message_index(messages_.size() - 1);
-                    if (messages_.size() > MAX_MESSAGES)
-                        messages_.erase(messages_.begin());
                     console_.write_tagged(text + stamp_after() + "\n", m.status, pid);
                     // Saved exactly as shown: the delivery dot carries "this one is
                     // mine", so the old "me:" prefix was noise the live view never had.
@@ -1787,8 +1786,9 @@ MeshtasticChatView::MeshtasticChatView(NavigationView& nav,
     };
 
     button_clear_.on_select = [this](Button&) {
-        messages_.clear();
-        console_.clear(true);
+        nav_.display_modal("Clear chat screen?", "Saved SD history is kept.", YESNO, [this](bool yes) {
+            if (yes) console_.clear(true);
+        });
     };
 }
 
@@ -1822,6 +1822,7 @@ bool MeshtasticChatView::on_touch(const TouchEvent event) {
             m.from_name = "Me";
             m.from_id = router_.local_node_id();
             m.to_id = dest;
+            m.channel = channel_idx_;
             m.text = text;
             m.timestamp = to_string_datetime(rtc_time::now(), HM);
             m.outgoing = true;
@@ -1829,8 +1830,7 @@ bool MeshtasticChatView::on_touch(const TouchEvent event) {
             m.status = (radio_mode_ == 1) ? 4 : 1;
             m.sent_tick = now_ticks_;
             m.expects_ack = unicast && (radio_mode_ != 1);
-            messages_.push_back(m);
-            if (messages_.size() > MAX_MESSAGES) messages_.erase(messages_.begin());
+            remember(m);
             console_.set_message_index(messages_.size() - 1);
             console_.write_tagged(text + stamp_after() + "\n", m.status, pid);
             text_count_.set("m:" + to_string_dec_uint(++total_msgs_));
@@ -1855,7 +1855,7 @@ void MeshtasticChatView::set_filter(uint8_t mode) {
 // rather than waiting for them to age out, so the memory is returned when the setting
 // says so and not at some later moment the user cannot see.
 void MeshConsole::set_max_lines(size_t n) {
-    if (n < 4) n = 4;
+    if (n < 5) n = 5;
     max_lines_ = n;
     while (lines_.size() > max_lines_) lines_.erase(lines_.begin());
     if (scroll_back_ > lines_.size()) scroll_back_ = 0;
@@ -1864,6 +1864,8 @@ void MeshConsole::set_max_lines(size_t n) {
 
 void MeshtasticChatView::set_display(const ChatDisplay& d) {
     const bool want_glyphs = d.glyph_font && !display_.glyph_font;
+    const bool reset_filter = !display_initialized_ || d.show_tech != display_.show_tech;
+    display_initialized_ = true;
     display_ = d;
     // Turning the table on takes effect at once. It used to wait for the next launch,
     // because the file is read on the first timer tick and the setting was read there
@@ -1875,7 +1877,7 @@ void MeshtasticChatView::set_display(const ChatDisplay& d) {
     // On a channel the last packet could be from anyone, so the figure is meaningless
     // there and the room goes to the rest of the status row.
     text_rssi_.hidden(!d.show_db);
-    set_filter(d.show_tech ? 0 : 1);
+    if (reset_filter) set_filter(d.show_tech ? 0 : 1);
 }
 
 std::string MeshtasticChatView::stamp() const {
@@ -1983,15 +1985,36 @@ void MeshtasticChatView::clear_all_history() {
     // The files are gone, so every remembered position in them is meaningless. Left
     // set, a message still waiting for its delivery result would write its byte into a
     // fresh, much shorter file at an offset from the old one.
-    for (auto& mm : messages_) mm.hist_offset = 0;
+    messages_.clear();
     console_.clear(true);
     console_.write_tech("* history cleared\n");
     set_dirty();
 }
 
+void MeshtasticChatView::remember(const ChatMessage& m) {
+    if (messages_.size() >= MAX_MESSAGES) {
+        messages_.erase(messages_.begin());
+        console_.forget_oldest_message();
+    }
+    messages_.push_back(m);
+}
+
 void MeshtasticChatView::switch_conversation() {
     console_.clear(true);
-    load_history();
+    if (display_.save_count) {
+        load_history();
+    } else {
+        for (size_t i = 0; i < messages_.size(); ++i) {
+            const auto& m = messages_[i];
+            const bool broadcast = m.to_id == BROADCAST_ADDR;
+            const auto peer = broadcast ? BROADCAST_ADDR : (m.outgoing ? m.to_id : m.from_id);
+            if (peer != dest_id_ || (broadcast && m.channel != channel_idx_)) continue;
+            console_.set_message_index(i);
+            const std::string time = display_.time_mode ? "[" + m.timestamp + "] " : "";
+            const auto line = m.outgoing ? m.text : m.from_name + ": " + m.text;
+            console_.write_tagged(time + line + "\n", m.status, m.packet_id);
+        }
+    }
     set_dirty();
 }
 
@@ -2457,7 +2480,7 @@ void MeshtasticChatView::on_packet(const MeshPacket& pkt) {
     // which still went into the store and were still acknowledged: the sender saw a
     // receipt for a message that was never shown.
     m.sent_tick = now_ticks_;
-    for (auto it = messages_.rbegin(); it != messages_.rend() && it != messages_.rbegin() + 6; ++it) {
+    for (auto it = messages_.rbegin(); it != messages_.rend() && static_cast<size_t>(it - messages_.rbegin()) < 6; ++it) {
         if (!it->outgoing && it->from_id == m.from_id && it->text == m.text &&
             (now_ticks_ - it->sent_tick) < 3600u)
             return;
@@ -2470,8 +2493,7 @@ void MeshtasticChatView::on_packet(const MeshPacket& pkt) {
         const uint8_t hs = pkt.header.hop_start(), hl = pkt.header.hop_limit();
         m.hops = (hs >= hl) ? static_cast<uint8_t>(hs - hl) : 0;
     }
-    if (messages_.size() >= MAX_MESSAGES) messages_.erase(messages_.begin());
-    messages_.push_back(m);
+    remember(m);
 
     // A text addressed to us alone is a direct message: open/keep its thread and tag
     // the line so it is not mistaken for channel traffic.
@@ -4139,6 +4161,7 @@ bool MeshtasticChannelsView::on_key(const KeyEvent key) {
     if (key == KeyEvent::Down && selected_ + 1 >= row_count()) return false;
     switch (key) {
         case KeyEvent::Up:
+            if (selected_ == 0) return false;
             move_selection(-1);
             return true;
         case KeyEvent::Down:
@@ -4613,7 +4636,7 @@ void MeshRadioPageView::update_whip() {
 MeshRadioPageView::MeshRadioPageView(NavigationView& nav, MeshSettings& cfg, MeshSettingsHooks& hooks)
     : MeshSettingsPage(nav, cfg, hooks) {
     add_children({&labels_, &field_region_, &field_preset_, &field_hops_, &field_cr_,
-                  &button_freq_, &field_slot_, &field_nodeinfo_,
+                  &button_freq_, &button_auto_, &field_slot_, &field_nodeinfo_,
                   &check_mqtt_, &check_ignore_mqtt_, &field_txpwr_, &field_txdb_,
                   &text_whip_});
     update_whip();
@@ -4666,48 +4689,25 @@ MeshRadioPageView::MeshRadioPageView(NavigationView& nav, MeshSettings& cfg, Mes
 
     button_freq_.set_text(fmt_freq_mhz(cfg_.freq_override_hz));
     button_freq_.on_select = [this](Button&) {
-        // Megahertz, e.g. "868.825"; empty or zero hands it back to the region.
-        entry_.clear();
-        mesh_prompt(nav_, entry_, 10, [this](std::string& val) {
-                        // Parsed by hand. std::stod throws on the first letter, and an
-                        // exception here halts the system: this firmware has no handler
-                        // for one. Typing a letter into a frequency box is a slip, not
-                        // grounds for taking the radio down.
-                        //
-                        // "868.825" and "868" both work, in megahertz. Anything else -
-                        // a letter, two dots, a number the radio cannot reach - leaves
-                        // the setting exactly as it was.
-                        if (val.empty() || val == "0") {
-                            cfg_.freq_override_hz = 0;
-                        } else {
-                            uint32_t mhz = 0, frac = 0, fdigits = 0;
-                            size_t i = 0;
-                            bool ok = false;
-                            for (; i < val.size() && val[i] >= '0' && val[i] <= '9'; i++) {
-                                mhz = mhz * 10 + static_cast<uint32_t>(val[i] - '0');
-                                ok = true;
-                                if (mhz > 6000) return;  // past what the radio can tune
-                            }
-                            if (i < val.size() && val[i] == '.') {
-                                i++;
-                                for (; i < val.size() && val[i] >= '0' && val[i] <= '9'; i++) {
-                                    if (fdigits < 6) {
-                                        frac = frac * 10 + static_cast<uint32_t>(val[i] - '0');
-                                        fdigits++;
-                                    }
-                                    ok = true;
-                                }
-                            }
-                            if (!ok || i != val.size()) return;  // trailing junk
-                            uint32_t scale = 1000000;
-                            for (uint32_t k = 0; k < fdigits; k++) scale /= 10;
-                            const uint32_t hz = mhz * 1000000u + frac * scale;
-                            if (hz < 1000000u) return;  // below the tuner's floor
-                            cfg_.freq_override_hz = hz;
-                        }
-                        button_freq_.set_text(fmt_freq_mhz(cfg_.freq_override_hz));
-                        update_whip();
-                        changed_radio(); }, false);
+        const auto current = cfg_.freq_override_hz ? cfg_.freq_override_hz :
+            channel_frequency(cfg_.region_idx, cfg_.preset_idx, cfg_.freq_slot, cfg_.primary_name.c_str());
+        auto* keypad = nav_.push<FrequencyKeypadView>(current);
+        keypad->on_changed = [this](rf::Frequency hz) {
+            if (hz != 0 && (hz < 1000000 || hz > UINT32_MAX)) {
+                text_whip_.set("Out of range: 1-4294 MHz");
+                return;
+            }
+            cfg_.freq_override_hz = static_cast<uint32_t>(hz);
+            button_freq_.set_text(fmt_freq_mhz(cfg_.freq_override_hz));
+            update_whip();
+            changed_radio();
+        };
+    };
+    button_auto_.on_select = [this](Button&) {
+        cfg_.freq_override_hz = 0;
+        button_freq_.set_text(fmt_freq_mhz(0));
+        update_whip();
+        changed_radio();
     };
 
     field_slot_.set_value(cfg_.freq_slot);
