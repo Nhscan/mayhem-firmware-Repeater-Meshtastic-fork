@@ -58,6 +58,7 @@ CaptureThread::~CaptureThread() {
 void CaptureThread::stop() {
     if (thread) {
         chThdTerminate(thread);
+        BufferExchange::wake_waiter(thread);
         chThdWait(thread);
         thread = nullptr;
     }
@@ -81,7 +82,10 @@ Optional<File::Error> CaptureThread::run() {
     BufferExchange buffers{&config};
 
     while (!chThdShouldTerminate()) {
-        auto buffer = buffers.get();
+        auto buffer = buffers.get_interruptible();
+        if (!buffer) {
+            break;
+        }
         auto write_result = writer->write(buffer->data(), buffer->size());
         if (write_result.is_error()) {
             return write_result.error();
