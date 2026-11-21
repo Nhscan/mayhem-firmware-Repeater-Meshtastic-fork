@@ -1,5 +1,9 @@
 # Changelog
 
+## ar09 - 2026-11-21
+
+Meshtastic now reserves chat rows across display filters, restores recent messages when switching conversations with SD saving off, and keeps message-detail links aligned as the session buffer rolls over. The compose bar has a wide Write message button and a separate Clear confirmation. Radio uses the native frequency keypad with Load and an explicit Auto reset. Settings pages include a focusable Back button. The H4M build and archive checks passed. Physical-device testing is pending.
+
 ## ar08 - 2026-11-21
 
 H4M community test firmware `n_261121_ar08` incorporates the upstream November 21 nightly and the ar07 Meshtastic chat-history change. In Msg view, hidden status lines are discarded first when the history buffer is full. The ar06 Settings memory fix is included. Auto Repeater retains its record-only and automatic repeat modes.
