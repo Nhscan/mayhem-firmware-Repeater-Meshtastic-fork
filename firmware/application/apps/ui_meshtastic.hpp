@@ -397,7 +397,7 @@ struct ChatDisplay {
     uint8_t name_mode{0};    // 0 = long name, 1 = short name, 2 = node id, 3 = none
                              // (3 leans on the per-node colour square instead)
     bool show_db{true};      // signal of the last packet in the status row
-    bool show_tech{true};    // app status lines ("* ...") in the chat
+    bool show_tech{false};    // app status lines ("* ...") in the chat
     uint32_t save_count{0};  // messages kept on the SD card (0 = do not save)
     // Load /APPS/mesh_font.fnt so the chat can show alphabets the firmware font has
     // no glyphs for. Off by default, and it has to be: the table is about two
@@ -779,6 +779,11 @@ class MeshConsole : public Widget {
     size_t message_at(Coord y) const;
     // Tag the lines written next with a chat-message index, so they can be tapped.
     void set_message_index(size_t idx) { pending_msg_ = static_cast<uint32_t>(idx) + 1; }
+    void forget_oldest_message() {
+        for (auto& row : lines_) {
+            if (row.msg) --row.msg;
+        }
+    }
     void clear(bool clear_buffer);
     void paint(Painter& painter) override;
     // Scrollback: the console keeps a larger history than fits on screen; when it
@@ -1042,7 +1047,7 @@ class MeshtasticChatView : public View {
 
     static constexpr int SV_H = 280;
     static constexpr int STATUS_H = 16;
-    static constexpr int BOT_H = 24;  // slim button row -> the chat gets more height
+    static constexpr int BOT_H = 56;  // conversation controls and compose bar
     static constexpr int CON_Y = STATUS_H;
     static constexpr int CON_H = SV_H - STATUS_H - BOT_H;  // 240
     static constexpr int BOT_Y = SV_H - BOT_H;             // 256
@@ -1108,6 +1113,7 @@ class MeshtasticChatView : public View {
     static std::u16string conversation_path(uint32_t peer, uint8_t channel);
     // Show the conversation for the current channel / peer: the console is cleared and
     // refilled from that conversation's file (empty when it was never saved).
+    void remember(const ChatMessage& m);
     void switch_conversation();
 
     Labels labels_rf_{
@@ -1136,16 +1142,14 @@ class MeshtasticChatView : public View {
 
     MeshConsole console_{{0, CON_Y, screen_width, CON_H}};
 
+    bool display_initialized_{false};
     void load_history();
 
-    // Chat is the main window, so the button row is compact: a >> send glyph, the
-    // channel button, a WIDE node-filter (long peer names fit), and an X clear.
-    Button button_send_{{0, BOT_Y, 26, BOT_H}, "\xBB"};  // >> = send
-    Button button_chan_{{26, BOT_Y, 42, BOT_H}, "Ch:0"};
-    Button button_dest_{{68, BOT_Y, 108, BOT_H}, ">All"};
-    // Cycles the console filter: everything / messages only / status lines only.
-    Button button_filter_{{176, BOT_Y, 38, BOT_H}, "All"};
-    Button button_clear_{{214, BOT_Y, 26, BOT_H}, "X"};
+    Button button_chan_{{0, BOT_Y, 54, 24}, "Ch:P"};
+    Button button_dest_{{54, BOT_Y, 132, 24}, ">All"};
+    Button button_filter_{{186, BOT_Y, 54, 24}, "Msg"};
+    Button button_send_{{0, BOT_Y + 24, 180, 32}, "Write message"};
+    Button button_clear_{{180, BOT_Y + 24, 60, 32}, "Clear"};
 };
 
 // ---- Message detail (full-screen, pushed by tapping a chat line) -----------
@@ -1478,7 +1482,10 @@ class MeshtasticMapView : public View {
 class MeshSettingsPage : public View {
    public:
     MeshSettingsPage(NavigationView& nav, MeshSettings& cfg, MeshSettingsHooks& hooks)
-        : nav_{nav}, cfg_{cfg}, hooks_{hooks} {}
+        : nav_{nav}, cfg_{cfg}, hooks_{hooks} {
+        add_child(&back_);
+        back_.on_select = [this](Button&) { nav_.pop(); };
+    }
 
    protected:
     // The eight rows every page lays its controls out on. They start just under the
@@ -1509,6 +1516,7 @@ class MeshSettingsPage : public View {
     // ...and this one needs the receiver restarted: region, preset, frequency, slot.
     void changed_radio() { dirty_ = dirty_radio_ = true; }
 
+    Button back_{{0, 272, screen_width, 32}, "Back"};
     NavigationView& nav_;
     MeshSettings& cfg_;
     MeshSettingsHooks& hooks_;
@@ -1591,7 +1599,8 @@ class MeshRadioPageView : public MeshSettingsPage {
         {21 * 8, S2},
         6,
         {{"preset", 0}, {"4/5", 5}, {"4/6", 6}, {"4/7", 7}, {"4/8", 8}}};
-    Button button_freq_{{5 * 8, S3, 15 * 8, 16}, ""};
+    Button button_freq_{{5 * 8, S3, 15 * 8, 20}, ""};
+    Button button_auto_{{21 * 8, S3, 8 * 8, 20}, "Auto"};
     NumberField field_slot_{{11 * 8, S4}, 2, {0, 60}, 1, ' '};
     NumberField field_nodeinfo_{{14 * 8, S5}, 3, {0, 240}, 5, ' '};
     Checkbox check_mqtt_{{0, S6}, 4, "OK to MQTT", true};
