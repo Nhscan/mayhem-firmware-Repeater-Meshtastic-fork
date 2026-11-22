@@ -1675,7 +1675,7 @@ MeshtasticChatView::MeshtasticChatView(NavigationView& nav,
     init_radio_mode_switch();
 
     add_children({&labels_rf_, &field_lna_, &field_vga_, &field_amp_,
-                  &text_pkt_, &text_count_, &text_rssi_,
+                  &text_pkt_, &text_count_, &text_rssi_, &rf_level_,
                   &console_,
                   &button_send_, &button_chan_, &button_dest_, &button_filter_,
                   &button_clear_});
@@ -2606,7 +2606,39 @@ void MeshtasticChatView::on_retries_done(uint32_t request_id) {
     }
 }
 
+void MeshtasticChatView::collect_rf(const RSSIStatistics& stats) {
+    if (!stats.count) return;
+    rf_sampled_ = true;
+    rf_window_max_ = std::max(rf_window_max_, stats.max);
+}
+
+void MeshtasticChatView::reset_rf() {
+    rf_sampled_ = false;
+    rf_window_max_ = 0;
+    if (rf_shown_ >= 0) {
+        rf_shown_ = -1;
+        rf_level_.set("RF: --");
+    }
+}
+
 void MeshtasticChatView::tick(uint32_t now_ticks) {
+    if (now_ticks % 15u == 0) {
+        if (rf_sampled_) {
+            // H4M detector endpoints are about 31..171 ADC counts. Each bar
+            // segment represents one tenth of that span, not calibrated dBm.
+            const int level = std::min(10, std::max(0, (int(rf_window_max_) - 31) / 14));
+            if (level != rf_shown_) {
+                std::string bar = "RF: [..........]";
+                for (int i = 0; i < level; ++i) bar[5 + i] = '|';
+                rf_level_.set(bar);
+                rf_shown_ = level;
+            }
+            rf_sampled_ = false;
+            rf_window_max_ = 0;
+        } else {
+            reset_rf();
+        }
+    }
     now_ticks_ = now_ticks;
     for (auto& m : messages_) {
         // Only a direct (unicast) message times out to red - a broadcast has no
@@ -5811,6 +5843,7 @@ void MeshtasticView::start_deferred() {
 }
 
 void MeshtasticView::start_rx() {
+    chat_view_.reset_rf();
     is_transmitting_ = false;
     // A fresh demodulator is never mid-packet; the status message from the old one
     // (if any) can't arrive any more, so don't let a stale "busy" hold TX.
@@ -5878,6 +5911,7 @@ void MeshtasticView::start_rx() {
 }
 
 void MeshtasticView::trigger_tx() {
+    chat_view_.reset_rf();
     is_transmitting_ = true;
     tx_start_tick_ = uptime_ticks_;
     chat_view_.set_pkt_indicator(true);

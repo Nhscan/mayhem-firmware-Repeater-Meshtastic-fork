@@ -945,6 +945,8 @@ class MeshtasticChatView : public View {
     void on_retries_done(uint32_t request_id);
     // Called ~60 Hz with the app uptime; ages pending messages -> red on timeout.
     void tick(uint32_t now_ticks);
+    void collect_rf(const RSSIStatistics& stats);
+    void reset_rf();
     void set_pkt_indicator(bool tx);
     // A status line drawn in a node's colour (announcements).
     void write_colour(const std::string& s, uint8_t colour) {
@@ -1046,7 +1048,7 @@ class MeshtasticChatView : public View {
     void load_ext_font();
 
     static constexpr int SV_H = 280;
-    static constexpr int STATUS_H = 16;
+    static constexpr int STATUS_H = 32;
     static constexpr int BOT_H = 56;  // conversation controls and compose bar
     static constexpr int CON_Y = STATUS_H;
     static constexpr int CON_H = SV_H - STATUS_H - BOT_H;  // 240
@@ -1140,6 +1142,10 @@ class MeshtasticChatView : public View {
     // pixels I saved here were painted black straight over the padlock's left third.
     Text text_rssi_{{21 * 8, 0, 240 - 21 * 8 - 12, 16}, ""};
 
+    Text rf_level_{{0, 16, 160, 16}, "RF: --"};
+    uint8_t rf_window_max_{0};
+    bool rf_sampled_{false};
+    int8_t rf_shown_{-1};
     MeshConsole console_{{0, CON_Y, screen_width, CON_H}};
 
     bool display_initialized_{false};
@@ -2331,6 +2337,13 @@ class MeshtasticView : public View {
          {"Nodes", Color::yellow(), &nodes_view_},
          {"Data", Color::blue(), &map_view_},
          {"Setup", Color::cyan(), &setup_menu_}}};
+
+    MessageHandlerRegistration handler_rf_{
+        Message::ID::RSSIStatistics,
+        [this](const Message* p) {
+            if (!is_transmitting_ && cfg_.radio_mode != 1)
+                chat_view_.collect_rf(static_cast<const RSSIStatisticsMessage*>(p)->statistics);
+        }};
 
     MessageHandlerRegistration handler_lora_{
         Message::ID::LoRaPacket,
