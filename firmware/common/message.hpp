@@ -2341,6 +2341,9 @@ class LoRaPacketMessage : public Message {
     // list reported 0.0 dB whatever the link was really like.
     int16_t snr_tenths{0};
     uint8_t data[MAX_DATA]{};
+    enum class PayloadCrc : uint8_t { Unchecked, Pass, Fail, Incomplete };
+    PayloadCrc payload_crc{PayloadCrc::Unchecked};
+    uint16_t missed_buffers{0};
 };
 
 // LoRa reception status (M4 → M0): true once a packet's header is locked and its

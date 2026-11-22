@@ -75,6 +75,7 @@ class LoRaProcessor : public BasebandProcessor {
     uint16_t hdr_sym_[8]{};
     uint8_t hdr_count_{0};
     uint8_t payload_len_target_{0};  // bytes to collect (from header), 0 = unknown
+    bool payload_has_crc_{false};
     bool header_valid_{false};       // last decode_header() checksum result (debug/gate)
     // The LoRa header block carries SF-2 nibbles = 5 header + (SF-7) PAYLOAD nibbles.
     // At SF7 there are none (SF-2 == 5); at SF11 the first 4 payload nibbles (2 bytes)
@@ -107,8 +108,8 @@ class LoRaProcessor : public BasebandProcessor {
 
     // --- Decoded payload -----------------------------------------------------
     static constexpr size_t MAX_PAYLOAD{255};
-    std::array<uint8_t, MAX_PAYLOAD> payload_buf{};  // decoded bytes
-    uint8_t decoded_len_{0};
+    std::array<uint8_t, MAX_PAYLOAD + 2> payload_buf{};  // payload followed by optional CRC
+    uint16_t decoded_len_{0};
 
     // --- End-of-packet detection via FFT peak magnitude -----------------------
     float last_peak_mag_{0.0f};
@@ -224,12 +225,8 @@ class LoRaProcessor : public BasebandProcessor {
     uint32_t sf11_sps_{2048};                // RUNTIME samples/symbol = 2^SF (<=2048): 128/256/512/1024/2048
     uint32_t sf11_stages_{11};               // log2(sps) FFT butterfly stages (8/9/10/11)
     uint32_t sf11_nsteps_{8};                // demod steps = sps/256 = buffers/symbol (1/2/4/8)
-    // Rolling sample window.  5 symbols, not 3: FINE consumes exactly one demod per symbol
-    // and the budget delivers exactly one, so it has no real-time margin - whenever a job
-    // can't start the instant its samples land it slips a buffer, and over FINE's 14 symbols
-    // that slip accumulated past a 3-symbol window and tripped sf11_win_stale(), silently
-    // killing most packets. 5 symbols buys ~4 symbols of lag. Fits the ring: ref 16K + fft
-    // 16K + win 20K = 52 KiB of the 54 KiB.
+    // 3.5 LongFast symbols fit beside the reference and FFT scratch. The
+    // short-preset ring shares this storage, so growing it costs M4 heap.
     static constexpr size_t SF11_WIN{7 * SF11_SPS / 2};
     static_assert(SF11_SPS * 16 + SF11_WIN * sizeof(complex8_t) <= RING * sizeof(complex8_t), "LoRa views exceed sample storage");
     // The SF7 ring and the SF11 streaming buffers share this 54 KiB (never active
@@ -286,11 +283,11 @@ class LoRaProcessor : public BasebandProcessor {
     // 0 = not configured -> broadcast only.
     uint32_t local_node_id_{0};
     // da=0 wins on every real burst (off0=up_bin-tau + off+/-2 absorbs the residual), so a
-    // small da radius suffices; off search is +/-2 (in sf11_try_decode).
+    // small da radius suffices; off search is +/-2 (in sf11_search_headers).
     // The da search is now 0-radius: it cost N_DA demods per FINE symbol, and the real-time
     // budget below allows exactly ONE.  Measured on real captures, da=0 always won anyway,
     // and at OS=1 a da-sample window shift and an off-bin shift are near-degenerate, so the
-    // +/-2 off search in sf11_try_decode already absorbs what da used to cover.
+    // +/-2 off search in sf11_search_headers already absorbs what da used to cover.
     static constexpr int SF11_DA{0};                 // da search radius (samples)
     static constexpr int SF11_NDA{2 * SF11_DA + 1};  // 1 da candidate
     static constexpr int SF11_OFF_RAD{16};           // integer-bin off search radius (samples)
@@ -310,6 +307,7 @@ class LoRaProcessor : public BasebandProcessor {
                                                   // buffered search can decode the same
                                                   // block the stream gets wrong (BW125
                                                   // only; other rates still use 19)
+    static constexpr int SF11_SEARCH_BATCH{8};     // header candidates per DMA buffer
     static constexpr int SF11_HS_MAX{1};          // header-start hypotheses: h0 (0) and h0+SPS (1)
     static constexpr uint8_t SF11_PRE_MIN{6};     // preamble upchirps before SFD accept
 
@@ -359,6 +357,7 @@ class LoRaProcessor : public BasebandProcessor {
     enum class Sf11State : uint8_t { HUNT,
                                      RESOLVE,
                                      FINE,
+                                     SEARCH,
                                      PAYLOAD };
     Sf11State sf11_state_{Sf11State::HUNT};
     uint32_t win_w_{0};      // win11 monotonic write count
@@ -383,9 +382,10 @@ class LoRaProcessor : public BasebandProcessor {
     // half-symbol ambiguity. RESOLVE demods the first header symbol at h0 and h0+-N/2 and
     // keeps the sharpest (a half-symbol-off window straddles two header symbols -> dull).
     uint8_t sf11_res_idx_{0};  // 0,1,2 -> h0-N/2, h0, h0+N/2
-    long sf11_res_besth_{0};
+    uint32_t sf11_res_besth_{0};
     int32_t sf11_res_bestbin_{0};
     float sf11_res_bestfrac_{0.0f};
+    uint16_t sf11_last_dma_miss_{0};
     uint16_t sf11_miss0_{0};  // m4_buffer_missed snapshot at FINE start (drop detection)
     float sf11_res_bestsh_{-1.0f};
     float sf11_up_sharp_cache_{0.0f};  // up-sharpness cached between the 2 steps
@@ -426,6 +426,7 @@ class LoRaProcessor : public BasebandProcessor {
     // not need would delay every packet it already decodes.
     uint8_t sf11_fine_syms_{SF11_FINE_SYMS};
     uint8_t sf11_fine_sym_{0};  // current FINE symbol being demodded
+    uint16_t sf11_search_next_{0};  // next buffered header hypothesis
     uint8_t sf11_fine_da_{0};   // current da index within the symbol
     // chosen winner + payload decode
     int sf11_win_da_{0};
@@ -444,7 +445,7 @@ class LoRaProcessor : public BasebandProcessor {
     void sf11_recompute_ref(float cfo_ramp);    // rebuild ref11 = exp(-j(base+cfo*n))
     void sf11_dechirp_chunk(uint32_t part, uint32_t parts);
     uint8_t sf11_decode_bins(const int16_t* bins, uint8_t nbins, uint32_t off, uint8_t* out, uint8_t out_cap);  // bins->frame bytes (self-contained)
-    bool sf11_try_decode();                                                                                     // decode all (da,off) from bins -> winner
+    void sf11_search_headers();
     void sf11_reset();
 
     // --- Core DSP ------------------------------------------------------------
@@ -465,7 +466,11 @@ class LoRaProcessor : public BasebandProcessor {
     void reset_rx();
 
     void configure(const LoRaConfigureMessage& message);
-    void send_packet(const uint8_t* data, size_t len);
+    bool payload_complete() const;
+    void send_received_packet();
+    void send_packet(const uint8_t* data, size_t len,
+                     LoRaPacketMessage::PayloadCrc crc = LoRaPacketMessage::PayloadCrc::Unchecked,
+                     uint16_t missed_buffers = 0);
     // Tell the application whether a packet is currently being demodulated, so it can
     // listen before talking (only sent on a change - one message per packet edge).
     void set_rx_busy(bool busy);

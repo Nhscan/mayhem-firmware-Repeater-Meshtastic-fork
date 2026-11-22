@@ -35,6 +35,8 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include "portapack_shared_memory.hpp"
+
 #include <array>
 
 namespace ui {
@@ -2075,6 +2077,7 @@ class MeshtasticView : public View {
     void on_lora_packet(const LoRaPacketMessage* msg);
     // M4 reports that a packet is being demodulated (or has finished): hold TX.
     void on_lora_rx_status(const LoRaRxStatusMessage* msg);
+    void report_lora_rx_stages();
     void on_gps_update(const GPSPosDataMessage* msg);
     void on_environment_update(const EnvironmentDataMessage* msg);
     void read_battery();  // read the fuel gauge -> telemetry_ + Map
@@ -2249,6 +2252,8 @@ class MeshtasticView : public View {
     // A traceroute request waiting to be answered from on_timer, held exactly like the
     // metrics one below: assembling and encrypting a packet inside the RX callback is
     // far more stack than that callback has.
+    std::array<uint32_t, lora_rx_stage_count> lora_rx_stage_baseline_{};
+    std::array<uint32_t, lora_rx_stage_count> lora_rx_stage_reported_{};
     uint32_t bad_hash_seen_{0};  // last reported channel-filter rejection count
     uint32_t bad_decode_seen_{0};  // rate-limited receive/decryption failures
     uint32_t trace_dest_{0};

@@ -128,6 +128,20 @@ int main() {
                 check(lora::header_has_crc(h2) == (crc != 0), "header states its CRC flag");
             }
 
+    // The reference uses CRC-CCITT with seed zero over all but the last two bytes,
+    // then XORs the last two bytes in big-endian order. The PHY sends the CRC low byte first.
+    {
+        uint8_t payload[] = {0xFF, 0xFF, 0xFF, 0xFF, 0x30, 0x24, 0x69, 0x8F, 1, 2, 3, 4,
+                             0, 8, 0, 0, 8, 1, 0x12, 3, 'R', 'X', '1'};
+        check(lora::payload_crc(payload, sizeof(payload)) == 0x3419, "payload CRC reference");
+        payload[13] ^= 0x40;
+        check(lora::payload_crc(payload, sizeof(payload)) != 0x3419, "CRC catches a damaged channel hash");
+
+        uint8_t full[255];
+        for (size_t i = 0; i < sizeof(full); ++i) full[i] = static_cast<uint8_t>(i);
+        check(lora::payload_crc(full, sizeof(full)) == 0x650F, "maximum payload CRC reference");
+    }
+
     // ---- recorded off the air ------------------------------------------------
     // A broadcast text from a stock Heltec on LONG_MODERATE (SF11, 125 kHz), 2026-08-26:
     // the demodulator's raw peak bins, read out of the device over the console. The

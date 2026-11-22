@@ -53,6 +53,25 @@ struct ToneData {
     uint8_t message[256];
 };
 
+// LongFast and other presets using the streaming LoRa decoder. Only M4 writes
+// these counters. They survive an RX/TX baseband image switch.
+enum class LoRaRxStage : size_t {
+    PreambleCandidate,
+    PreambleLock,
+    SfdLock,
+    HeaderSearch,
+    HeaderLock,
+    FrameComplete,
+    SfdTimeout,
+    HeaderReject,
+    StaleWindow,
+    PayloadTimeout,
+    MissedBuffers,
+    Count,
+};
+
+constexpr size_t lora_rx_stage_count = static_cast<size_t>(LoRaRxStage::Count);
+
 /* NOTE: These structures must be located in the same location in both M4 and M0 binaries */
 struct SharedMemory {
     static constexpr size_t application_queue_k = 11;
@@ -93,6 +112,7 @@ struct SharedMemory {
     uint32_t volatile m4_baseband_loops{0};   // Main loop iterations
     uint8_t volatile m4_streaming_marker{0};  // Proves streaming_enable() called
 #endif
+    uint32_t volatile lora_rx_stages[lora_rx_stage_count]{};
 };
 
 extern SharedMemory& shared_memory;

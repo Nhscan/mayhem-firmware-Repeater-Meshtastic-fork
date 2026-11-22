@@ -5175,6 +5175,9 @@ MeshtasticView::MeshtasticView(NavigationView& nav)
     map_view_.hidden(true);
     setup_menu_.hidden(true);
 
+    for (size_t i = 0; i < lora_rx_stage_count; ++i)
+        lora_rx_stage_baseline_[i] = shared_memory.lora_rx_stages[i];
+
     // First run: give this device an identity of its own. The default used to be
     // 0xDEADBEEF for everybody, so any two fresh installs were the same node as far as
     // the mesh could tell - two nodes sharing an address break each other's routing,
@@ -6071,11 +6074,25 @@ void MeshtasticView::on_lora_packet(const LoRaPacketMessage* msg) {
     const bool node_was_new = (pre_e == nullptr);
     const bool node_had_name = pre_e && pre_e->long_name[0];
 
+    const uint32_t bad_hash_before = router_.bad_hash_count();
     const bool should_rebroadcast = router_.on_raw_rx(
         msg->data, msg->length,
         msg->rssi,  // approximate dBm from the M4 dechirp peak power
         msg->snr_tenths / 10.0f,
         uptime_ticks_);
+
+    using PayloadCrc = LoRaPacketMessage::PayloadCrc;
+    if (msg->payload_crc == PayloadCrc::Fail || msg->payload_crc == PayloadCrc::Incomplete ||
+        msg->missed_buffers ||
+        (msg->payload_crc == PayloadCrc::Pass && router_.bad_hash_count() != bad_hash_before)) {
+        const char* result = "na";
+        if (msg->payload_crc == PayloadCrc::Fail) result = "bad";
+        if (msg->payload_crc == PayloadCrc::Incomplete) result = "cut";
+        if (msg->payload_crc == PayloadCrc::Pass) result = "ok";
+        chat_view_.write_console(std::string{"* CRC "} + result +
+                                 " src " + to_string_hex(from & 0xFFFF, 4) +
+                                 " d" + to_string_dec_uint(msg->missed_buffers) + "\n");
+    }
 
     // Two announcements per neighbour at most: one when its id is first heard, one when
     // its NodeInfo finally resolves that id to a name (which usually arrives later).
@@ -6167,6 +6184,9 @@ void MeshtasticView::on_timer() {
     mesh_text_entry_tick();
 
     uptime_ticks_++;
+    // Keep chat readable: summarize changed counters at most once every eight seconds.
+    if (uptime_ticks_ % (8u * 60u) == 0)
+        report_lora_rx_stages();
     nodes_view_.set_now(uptime_ticks_);     // live "last heard" ages
     chat_view_.tick(uptime_ticks_);         // age pending messages -> red on ACK timeout
     router_.set_hop_limit(cfg_.hop_limit);  // keep the Setup hop-limit applied to our TX
@@ -6510,6 +6530,29 @@ void MeshtasticView::on_timer() {
         if (--tx_delay_ == 0)
             trigger_tx();
     }
+}
+
+void MeshtasticView::report_lora_rx_stages() {
+    std::array<uint32_t, lora_rx_stage_count> totals{};
+    for (size_t i = 0; i < totals.size(); ++i)
+        totals[i] = shared_memory.lora_rx_stages[i] - lora_rx_stage_baseline_[i];
+    if (uptime_ticks_ != 8u * 60u && totals == lora_rx_stage_reported_) return;
+    lora_rx_stage_reported_ = totals;
+
+    const auto value = [&totals](LoRaRxStage stage) {
+        return to_string_dec_uint(totals[static_cast<size_t>(stage)]);
+    };
+    chat_view_.write_console("* RX A" + value(LoRaRxStage::PreambleCandidate) +
+                             " P" + value(LoRaRxStage::PreambleLock) +
+                             " S" + value(LoRaRxStage::SfdLock) +
+                             " F" + value(LoRaRxStage::HeaderSearch) +
+                             " H" + value(LoRaRxStage::HeaderLock) +
+                             " R" + value(LoRaRxStage::FrameComplete) + "\n");
+    chat_view_.write_console("* RX T" + value(LoRaRxStage::SfdTimeout) +
+                             " X" + value(LoRaRxStage::HeaderReject) +
+                             " W" + value(LoRaRxStage::StaleWindow) +
+                             " L" + value(LoRaRxStage::PayloadTimeout) +
+                             " D" + value(LoRaRxStage::MissedBuffers) + "\n");
 }
 
 void MeshtasticView::on_lora_rx_status(const LoRaRxStatusMessage* msg) {

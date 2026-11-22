@@ -1,5 +1,15 @@
 # Changelog
 
+## LongFast receive window fix - 2026-11-21
+
+Test firmware `n_261121_rxwin`, based on the ar10 RF meter build.
+
+- Spread the LoRa header search across DMA buffers to reduce missed samples during decoding.
+- Recover the receive cursor when its samples have been overwritten. Allow late windows whose samples are still available.
+- Add LoRa payload CRC diagnostics and counters for receive stages, header rejects, stale windows, and missed sample buffers.
+
+The host tests and firmware layout, runtime memory, install, and Flash Utility archive checks passed. The bench test received 10 of 10 LongFast broadcasts from Mesh A at `L:16 V:14 A:0`. In a separate two-way test, the HackRF received 5 of 5 from Mesh A, and Mesh A received 4 of 5 from the HackRF. OpenWebRX decoded all 10 transmissions.
+
 ## ar09 - 2026-11-21
 
 Meshtastic now reserves chat rows across display filters, restores recent messages when switching conversations with SD saving off, and keeps message-detail links aligned as the session buffer rolls over. The compose bar has a wide Write message button and a separate Clear confirmation. Radio uses the native frequency keypad with Load and an explicit Auto reset. Settings pages include a focusable Back button. The H4M build and archive checks passed. Physical-device testing is pending.

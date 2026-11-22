@@ -70,6 +70,19 @@
 
 namespace lora {
 
+// The last two payload bytes are XORed into the CRC rather than shifted through it.
+inline uint16_t payload_crc(const uint8_t* payload, size_t length) {
+    uint16_t crc = 0;
+    if (length < 2) return length ? payload[0] : 0;
+    for (size_t i = 0; i < length - 2; ++i) {
+        const uint8_t byte = payload[i];
+        crc ^= static_cast<uint16_t>(byte) << 8;
+        for (int bit = 0; bit < 8; ++bit)
+            crc = static_cast<uint16_t>((crc << 1) ^ ((crc & 0x8000) ? 0x1021 : 0));
+    }
+    return static_cast<uint16_t>(crc ^ (static_cast<uint16_t>(payload[length - 2]) << 8) ^ payload[length - 1]);
+}
+
 // ---- reduced rate ----------------------------------------------------------
 
 // Low Data Rate Optimisation: mandatory once a symbol lasts longer than 16 ms,
