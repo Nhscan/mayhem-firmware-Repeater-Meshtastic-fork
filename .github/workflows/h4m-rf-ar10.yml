@@ -1,0 +1,54 @@
+name: Build H4M Meshtastic live RF meter
+on:
+  pull_request:
+    branches: [next]
+permissions:
+  contents: write
+jobs:
+  firmware:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'build/h4m-mesh-rf-meter-ar10'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          submodules: recursive
+      - name: Compile and validate
+        run: |
+          set -e
+          source_dir=$(pwd)
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update
+          sudo apt-get install -y git tar wget dfu-util cmake python3 python3-pyelftools python3-lz4 python3-yaml ccache bzip2 liblz4-tool curl ninja-build
+          
+          mkdir -p $RUNNER_TEMP/arm
+          cd $RUNNER_TEMP/arm
+          wget -O gcc-arm-none-eabi "https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2?revision=108bd959-44bd-4619-9c19-26187abf5225&la=en&hash=E788CE92E5DFD64B2A8C246BBA91A249CB8E2D2D"
+          mkdir -p armbin
+          tar --strip=1 -xjf gcc-arm-none-eabi -C armbin
+          export PATH=$RUNNER_TEMP/arm/armbin/bin:$PATH
+          cd "$source_dir"
+          python3 tools/update_external_tier_ld.py
+          cmake -S . -B build -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DMAYHEM_CUSTOM_VERSION=n_261121_ar10
+          cmake --build build --target oci -j6
+          python3 tests/auto_repeater/check_layout.py build
+          python3 tests/auto_repeater/check_runtime_memory.py build
+          python3 tests/auto_repeater/check_install.py build n_261121_ar10
+      - name: Package Flash Utility update
+        run: |
+          tar --format=ustar -cf H4M_AR10.ppfw.tar -C build/firmware/firmware_tar APPS BASEBAND FIRMWARE
+          python3 tests/auto_repeater/check_update_archive.py H4M_AR10.ppfw.tar n_261121_ar10
+          sha256sum H4M_AR10.ppfw.tar > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: H4M-AR10-RF-Meter
+          path: |
+            H4M_AR10.ppfw.tar
+            SHA256SUMS.txt
+          if-no-files-found: error
+      - name: Publish H4M test firmware
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ar10 H4M_AR10.ppfw.tar SHA256SUMS.txt --target "$(git rev-parse HEAD)" --prerelease --title "H4M ar10 · Meshtastic live RF meter" --notes "Community test build for HackRF One + PortaPack H4M. Adds a relative live receiver level and peak marker under the chat gain controls. RF activity can register before LoRa decode. Copy the intact TAR to /FIRMWARE and select it in Utilities > Flash Utility. About should show n_261121_ar10."
