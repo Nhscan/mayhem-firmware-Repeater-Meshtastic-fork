@@ -1,5 +1,5 @@
 diff --git a/firmware/application/CMakeLists.txt b/firmware/application/CMakeLists.txt
-index 4b7d003..c624b42 100644
+index 4b7d003..bd6e28f 100644
 --- a/firmware/application/CMakeLists.txt
 +++ b/firmware/application/CMakeLists.txt
 @@ -210,6 +210,12 @@ set(CPPSRC
@@ -15,6 +15,22 @@ index 4b7d003..c624b42 100644
  	baseband_api.cpp
  	capture_thread.cpp
  	clock_manager.cpp
+@@ -537,3 +543,15 @@ add_custom_target(
+ )
+ 
+ add_dependencies(${PROJECT_NAME} baseband)
++
++# Reserve the largest LoRa image before the external launcher code.
++set(MESH_BASEBAND_DIR ${CMAKE_BINARY_DIR}/firmware/baseband)
++add_custom_command(
++    OUTPUT ${MESH_BASEBAND_DIR}/MSRV.bin
++    COMMAND python3 ${PROJECT_SOURCE_DIR}/../tools/make_mesh_reserve.py
++        ${MESH_BASEBAND_DIR}/MSRV.bin ${MESH_BASEBAND_DIR}/PLOR.bin ${MESH_BASEBAND_DIR}/PLOT.bin
++    DEPENDS ${MESH_BASEBAND_DIR}/PLOR.bin ${MESH_BASEBAND_DIR}/PLOT.bin
++        ${PROJECT_SOURCE_DIR}/../tools/make_mesh_reserve.py)
++add_custom_target(mesh_reserve DEPENDS ${MESH_BASEBAND_DIR}/MSRV.bin)
++add_dependencies(mesh_reserve baseband)
++add_dependencies(application mesh_reserve)
 diff --git a/firmware/application/app_settings.cpp b/firmware/application/app_settings.cpp
 index 2801cf4..8a4f563 100644
 --- a/firmware/application/app_settings.cpp
