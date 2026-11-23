@@ -58,3 +58,26 @@ Extracted Meshtastic protocol, crypto, node database, routing, key handling, LoR
 Nine host test programs passed with MinGW GCC (C++17, -O2, -Wall -Wextra; _USE_MATH_DEFINES enables the Windows math constants used by test_lora_ref).
 After finding the newer RX-window branch, updated framing and its regression fixture and repeated that test.
 The three-screen image was read from the saved original. It labels n_261121_rxwin and LongFast broadcast, and shows HackRF test 01 through 05 received by Mesh A with OpenWebRX decoding. It identifies the PortaPack panel as H2, so verify the actual device model with Craig before stating H4M-only hardware evidence.
+
+## Prior upstream review discovered during integration
+
+Original app PR: https://github.com/portapack-mayhem/mayhem-firmware/pull/3306
+Author: verhogladov. Closed without merge.
+Maintainer zxkmm requested a narrower, less mixed change and invited developer discussion on Discord.
+Maintainer htotoo's closing comment says the app changes too much base firmware and should remain separate firmware.
+The original PR also discusses the external-app limit and the application's much larger size.
+Do not submit an equivalent full-app PR while ignoring that decision. Craig has been asked whether to explore a smaller external app or prepare a full-feature proposal for maintainer feedback.
+
+## Current integration measurement
+
+A separate build/meshtastic-upstream-measurement branch restores the latest tested UI/DSP onto current upstream, then applies a narrowly scoped integration patch.
+It preserves existing built-in baseband inclusion and omits the global SD-loader fallback and all repeater changes.
+Only the Meshtastic RX/TX images are read from SD through an app-scoped loader.
+The existing internal UI placement is temporarily retained to measure its real flash cost. This is explicitly not the final external-app implementation.
+New LoRa IPC IDs were moved to 128/129/130 to avoid upstream Horus IDs 126/127.
+Initial compilation found the new loader needed native UTF-16 paths. That was corrected.
+RX M4 code linked at 30904 bytes and TX at 11128 bytes in the first measurement run.
+All nine host test programs passed on the Linux runner.
+A subsequent local adjustment defers TX enable until image load and clears TX flags on failure; it is not yet in the active hosted measurement run.
+Final M0 link and firmware space results are pending.
+
