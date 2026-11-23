@@ -333,7 +333,7 @@ index a2b6d8a..a4e70bd 100644
  // handing it to queue_tx (which copies it), and the UI runs on one thread, so a single
  // buffer serves them all.
 +// Integration measurement build: load only this app's own radio images.
-+bool load_mesh_baseband(const char* filename) {
++bool load_mesh_baseband(const char16_t* filename) {
 +    File image;
 +    if (image.open(filename) || !image.size() ||
 +        image.size() > portapack::memory::map::m4_code.size()) return false;
@@ -358,7 +358,7 @@ index a2b6d8a..a4e70bd 100644
      // model's stored LNA/VGA/amp, which is what the L/V/A fields edit.
  
 -    baseband::run_image(portapack::spi_flash::image_tag_lora_rx);
-+    if (!load_mesh_baseband("BASEBAND/PLOR.bin")) {
++    if (!load_mesh_baseband(u"BASEBAND/PLOR.bin")) {
 +        receiver_model.disable();
 +        transmitter_model.disable();
 +        nav_.display_modal("LoRa image missing", "Copy matching PLOR.bin\nto SD BASEBAND folder.");
@@ -372,7 +372,7 @@ index a2b6d8a..a4e70bd 100644
      transmitter_model.set_tx_gain(active_tx_gain());
  
 -    baseband::run_image(portapack::spi_flash::image_tag_lora_tx);
-+    if (!load_mesh_baseband("BASEBAND/PLOT.bin")) {
++    if (!load_mesh_baseband(u"BASEBAND/PLOT.bin")) {
 +        receiver_model.disable();
 +        transmitter_model.disable();
 +        nav_.display_modal("LoRa image missing", "Copy matching PLOT.bin\nto SD BASEBAND folder.");
