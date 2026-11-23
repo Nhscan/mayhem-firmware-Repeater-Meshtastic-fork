@@ -3,7 +3,7 @@
 Target: portapack-mayhem/mayhem-firmware, next.
 Clean upstream baseline: c27dcfceaddab8cddfb341c787018d26f5136e92.
 Existing fork next: 36740da8f0a67a22fae46a83e102fc55e528d564.
-Newest app source reviewed: fca5fd7218d5abc051a6b8efe1d8dea6e8a8e7c2, build/h4m-mesh-rf-meter-ar10.
+Newest tested-source candidate: d2113491810f9877a087c0d43bea785d93bfecbd, fix/meshtastic-rx-window. This incorporates the ar10 meter work and later LongFast receive fixes.
 This preparation branch contains a review plan, not an integrated firmware change.
 
 ## Required source separation
@@ -52,3 +52,9 @@ Prepare the final description and validated build first, then present the exact 
 - Physical UI, send/receive, encrypted channels and startup/exit stability on final build.
 - Clarify current DM PKC and supported SF limitations from current source/tests.
 
+## Work completed in the preparation branch
+
+Extracted Meshtastic protocol, crypto, node database, routing, key handling, LoRa framing and existing host tests, excluding repeater files. UI/DSP/build integration is still pending.
+Nine host test programs passed with MinGW GCC (C++17, -O2, -Wall -Wextra; _USE_MATH_DEFINES enables the Windows math constants used by test_lora_ref).
+After finding the newer RX-window branch, updated framing and its regression fixture and repeated that test.
+The three-screen image was read from the saved original. It labels n_261121_rxwin and LongFast broadcast, and shows HackRF test 01 through 05 received by Mesh A with OpenWebRX decoding. It identifies the PortaPack panel as H2, so verify the actual device model with Craig before stating H4M-only hardware evidence.
