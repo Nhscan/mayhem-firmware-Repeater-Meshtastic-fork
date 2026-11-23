@@ -184,7 +184,7 @@ index 303cbc1..f854f59 100644
  
  # The RAM image (${HACKRF_FIRMWARE_BIN_IMAGE}) is produced by the hackrf
 diff --git a/firmware/common/message.hpp b/firmware/common/message.hpp
-index c6d2e24..5d12722 100644
+index c6d2e24..5345cc2 100644
 --- a/firmware/common/message.hpp
 +++ b/firmware/common/message.hpp
 @@ -184,6 +184,9 @@ class Message {
@@ -197,33 +197,6 @@ index c6d2e24..5d12722 100644
          MAX
      };
  
-@@ -2023,7 +2026,7 @@ class NotificationDataMessage : public Message {
-     uint16_t timeout = 10000;
- };
- 
--// Sent M0M4: a tone detection event (tone ended, or periodic update while active)
-+// Sent M0�+'M4: a tone detection event (tone ended, or periodic update while active)
- class ToneDetectDataMessage : public Message {
-    public:
-     constexpr ToneDetectDataMessage()
-@@ -2033,7 +2036,7 @@ class ToneDetectDataMessage : public Message {
-     bool tone_end{false};     // True = tone just ended; False = tone still active (periodic update)
- };
- 
--// Sent M4M0: configure the tone detector
-+// Sent M4�+'M0: configure the tone detector
- class ToneDetectConfigureMessage : public Message {
-    public:
-     constexpr ToneDetectConfigureMessage(uint8_t squelch = 0, uint32_t ctcss_freq_x10 = 0)
-@@ -2041,7 +2044,7 @@ class ToneDetectConfigureMessage : public Message {
-           squelch_level{squelch},
-           ctcss_freq_x10{ctcss_freq_x10} {}
-     uint8_t squelch_level{0};
--    uint32_t ctcss_freq_x10{0};  // CTCSS frequency x 10 (e.g. 1000 = 100.0 Hz); 0 = None
-+    uint32_t ctcss_freq_x10{0};  // CTCSS frequency A- 10 (e.g. 1000 = 100.0 Hz); 0 = None
- };
- 
- class VorRxConfigureMessage : public Message {
 @@ -2333,4 +2336,61 @@ struct WMBusPacketMessage : public Message {
      uint16_t length = 0;
      uint8_t data[500] = {0};
