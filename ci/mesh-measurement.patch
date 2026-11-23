@@ -1,0 +1,395 @@
+diff --git a/firmware/application/CMakeLists.txt b/firmware/application/CMakeLists.txt
+index 4b7d003..c624b42 100644
+--- a/firmware/application/CMakeLists.txt
++++ b/firmware/application/CMakeLists.txt
+@@ -210,6 +210,12 @@ set(CPPSRC
+ 	${COMMON}/gpio.cpp
+ 	app_settings.cpp
+ 	audio.cpp
++	apps/ui_meshtastic.cpp
++	apps/mesh/mesh_protocol.cpp
++	apps/mesh/mesh_crypto.cpp
++	apps/mesh/mesh_nodedb.cpp
++	apps/mesh/mesh_router.cpp
++	apps/mesh/mesh_pki.cpp
+ 	baseband_api.cpp
+ 	capture_thread.cpp
+ 	clock_manager.cpp
+diff --git a/firmware/application/app_settings.cpp b/firmware/application/app_settings.cpp
+index 2801cf4..8a4f563 100644
+--- a/firmware/application/app_settings.cpp
++++ b/firmware/application/app_settings.cpp
+@@ -317,4 +317,9 @@ SettingsManager::~SettingsManager() {
+     save_settings(app_name_, bindings_);
+ }
+ 
++void SettingsManager::save() {
++    copy_from_radio_model(settings_);
++    save_settings(app_name_, bindings_);
++}
++
+ }  // namespace app_settings
+diff --git a/firmware/application/app_settings.hpp b/firmware/application/app_settings.hpp
+index da52ffb..f55e877 100644
+--- a/firmware/application/app_settings.hpp
++++ b/firmware/application/app_settings.hpp
+@@ -180,6 +180,7 @@ class SettingsManager {
+ 
+     /* True if settings were successfully loaded from file. */
+     bool loaded() const { return loaded_; }
++    void save();
+ 
+     Mode mode() const { return settings_.mode; }
+ 
+diff --git a/firmware/application/baseband_api.cpp b/firmware/application/baseband_api.cpp
+index b5d2b8c..3447b70 100644
+--- a/firmware/application/baseband_api.cpp
++++ b/firmware/application/baseband_api.cpp
+@@ -639,4 +639,17 @@ void request_audio_beep(uint32_t freq, uint32_t sample_rate, uint32_t duration_m
+     send_message(&message);
+ }
+ 
++void set_lora_config(uint8_t spreading_factor, uint32_t bandwidth_hz, uint8_t coding_rate, uint32_t local_node_id) {
++    LoRaConfigureMessage message{spreading_factor, bandwidth_hz, coding_rate, local_node_id};
++    send_message(&message);
++}
++
++void send_lora_packet(const uint8_t* data, size_t len) {
++    LoRaPacketMessage message{};
++    message.length = static_cast<uint8_t>(std::min(len, LoRaPacketMessage::MAX_DATA));
++    std::memcpy(message.data, data, message.length);
++    send_message(&message);
++}
++
++
+ } /* namespace baseband */
+diff --git a/firmware/application/baseband_api.hpp b/firmware/application/baseband_api.hpp
+index ddb7fc2..80d0555 100644
+--- a/firmware/application/baseband_api.hpp
++++ b/firmware/application/baseband_api.hpp
+@@ -136,6 +136,9 @@ bool is_image_running();
+ bool supports_rx_fs4();
+ void set_rx_fs4_direction(RxFs4Direction direction);
+ void run_image(const portapack::spi_flash::image_tag_t image_tag, bool enforce_core_sync = true);
++void run_prepared_image(uint32_t m4_code, bool enforce_core_sync, portapack::spi_flash::image_tag_t prepared_image_tag);
++void set_lora_config(uint8_t spreading_factor, uint32_t bandwidth_hz, uint8_t coding_rate, uint32_t local_node_id = 0);
++void send_lora_packet(const uint8_t* data, size_t len);
+ void shutdown();
+ 
+ void spectrum_streaming_start();
+diff --git a/firmware/application/external/external.cmake b/firmware/application/external/external.cmake
+index c4bfe94..ab0a061 100644
+--- a/firmware/application/external/external.cmake
++++ b/firmware/application/external/external.cmake
+@@ -1,4 +1,6 @@
+ set(EXTCPPSRC
++	external/meshtastic/main.cpp
++	external/meshtastic/ui_meshtastic_launcher.cpp
+ 	#afsk_rx   16 byte
+ 	external/afsk_rx/main.cpp
+ 	external/afsk_rx/ui_afsk_rx.cpp
+@@ -449,6 +451,7 @@ set(EXTCPPSRC
+ )
+ 
+ set(EXTAPPLIST
++	meshtastic
+ 	afsk_rx
+ 	calculator
+ 	font_viewer
+diff --git a/firmware/application/external/external_tier0.ld b/firmware/application/external/external_tier0.ld
+index c97a1b0..ae51294 100644
+--- a/firmware/application/external/external_tier0.ld
++++ b/firmware/application/external/external_tier0.ld
+@@ -126,6 +126,7 @@ MEMORY
+     ram_external_app_subghz_chat           (rwx) : org = 0xAE150000, len = 32k
+     ram_external_app_vdl2_rx               (rwx) : org = 0xAE160000, len = 32k
+     ram_external_app_horus_rx              (rwx) : org = 0xAE170000, len = 32k
++    ram_external_app_meshtastic            (rwx) : org = 0xAE180000, len = 32k
+ }
+ 
+ SECTIONS
+@@ -747,4 +748,10 @@ SECTIONS
+         KEEP(*(.external_app.app_horus_rx.application_information));
+         */external/horus_rx/*(*ui*external_app*horus_rx*);
+     } > ram_external_app_horus_rx
++
++    .external_app_meshtastic : ALIGN(4) SUBALIGN(4)
++    {
++        KEEP(*(.external_app.app_meshtastic.application_information));
++        */external/meshtastic/*(*ui*external_app*meshtastic*);
++    } > ram_external_app_meshtastic
+ }
+diff --git a/firmware/application/external/external_tier1.ld b/firmware/application/external/external_tier1.ld
+index f01cd60..f9fc2fc 100644
+--- a/firmware/application/external/external_tier1.ld
++++ b/firmware/application/external/external_tier1.ld
+@@ -122,6 +122,7 @@ MEMORY
+     ram_external_app_subghz_chat           (rwx) : org = 0xAE110000, len = 32k
+     ram_external_app_vdl2_rx               (rwx) : org = 0xAE120000, len = 32k
+     ram_external_app_horus_rx              (rwx) : org = 0xAE130000, len = 32k
++    ram_external_app_meshtastic            (rwx) : org = 0xAE140000, len = 32k
+ }
+ 
+ SECTIONS
+@@ -719,4 +720,10 @@ SECTIONS
+         KEEP(*(.external_app.app_horus_rx.application_information));
+         */external/horus_rx/*(*ui*external_app*horus_rx*);
+     } > ram_external_app_horus_rx
++
++    .external_app_meshtastic : ALIGN(4) SUBALIGN(4)
++    {
++        KEEP(*(.external_app.app_meshtastic.application_information));
++        */external/meshtastic/*(*ui*external_app*meshtastic*);
++    } > ram_external_app_meshtastic
+ }
+diff --git a/firmware/application/external/external_tier2.ld b/firmware/application/external/external_tier2.ld
+index c579adb..7f820ee 100644
+--- a/firmware/application/external/external_tier2.ld
++++ b/firmware/application/external/external_tier2.ld
+@@ -120,6 +120,7 @@ MEMORY
+     ram_external_app_subghz_chat           (rwx) : org = 0xAE0F0000, len = 32k
+     ram_external_app_vdl2_rx               (rwx) : org = 0xAE100000, len = 32k
+     ram_external_app_horus_rx              (rwx) : org = 0xAE110000, len = 32k
++    ram_external_app_meshtastic            (rwx) : org = 0xAE120000, len = 32k
+ }
+ 
+ SECTIONS
+@@ -705,4 +706,10 @@ SECTIONS
+         KEEP(*(.external_app.app_horus_rx.application_information));
+         */external/horus_rx/*(*ui*external_app*horus_rx*);
+     } > ram_external_app_horus_rx
++
++    .external_app_meshtastic : ALIGN(4) SUBALIGN(4)
++    {
++        KEEP(*(.external_app.app_meshtastic.application_information));
++        */external/meshtastic/*(*ui*external_app*meshtastic*);
++    } > ram_external_app_meshtastic
+ }
+diff --git a/firmware/baseband/CMakeLists.txt b/firmware/baseband/CMakeLists.txt
+index 303cbc1..f854f59 100644
+--- a/firmware/baseband/CMakeLists.txt
++++ b/firmware/baseband/CMakeLists.txt
+@@ -960,6 +960,13 @@ set(MODE_CPPSRC
+ DeclareTargets(PUSB sd_over_usb)
+ 
+ 
++set(add_to_firmware FALSE)
++set(MODE_FLAGS "-Os")
++set(MODE_CPPSRC proc_lora.cpp)
++DeclareTargets(PLOR lora_rx)
++set(MODE_CPPSRC proc_lora_tx.cpp)
++DeclareTargets(PLOT lora_tx)
++
+ ### HackRF "factory" firmware
+ 
+ # The RAM image (${HACKRF_FIRMWARE_BIN_IMAGE}) is produced by the hackrf
+diff --git a/firmware/common/message.hpp b/firmware/common/message.hpp
+index c6d2e24..5d12722 100644
+--- a/firmware/common/message.hpp
++++ b/firmware/common/message.hpp
+@@ -184,6 +184,9 @@ class Message {
+         SubGhzChatPacket = 125,
+         HorusPacket = 126,
+         HorusRxStatus = 127,
++        LoRaConfigure = 128,
++        LoRaPacket = 129,
++        LoRaRxStatus = 130,
+         MAX
+     };
+ 
+@@ -2023,7 +2026,7 @@ class NotificationDataMessage : public Message {
+     uint16_t timeout = 10000;
+ };
+ 
+-// Sent M0M4: a tone detection event (tone ended, or periodic update while active)
++// Sent M0�+'M4: a tone detection event (tone ended, or periodic update while active)
+ class ToneDetectDataMessage : public Message {
+    public:
+     constexpr ToneDetectDataMessage()
+@@ -2033,7 +2036,7 @@ class ToneDetectDataMessage : public Message {
+     bool tone_end{false};     // True = tone just ended; False = tone still active (periodic update)
+ };
+ 
+-// Sent M4M0: configure the tone detector
++// Sent M4�+'M0: configure the tone detector
+ class ToneDetectConfigureMessage : public Message {
+    public:
+     constexpr ToneDetectConfigureMessage(uint8_t squelch = 0, uint32_t ctcss_freq_x10 = 0)
+@@ -2041,7 +2044,7 @@ class ToneDetectConfigureMessage : public Message {
+           squelch_level{squelch},
+           ctcss_freq_x10{ctcss_freq_x10} {}
+     uint8_t squelch_level{0};
+-    uint32_t ctcss_freq_x10{0};  // CTCSS frequency x 10 (e.g. 1000 = 100.0 Hz); 0 = None
++    uint32_t ctcss_freq_x10{0};  // CTCSS frequency A- 10 (e.g. 1000 = 100.0 Hz); 0 = None
+ };
+ 
+ class VorRxConfigureMessage : public Message {
+@@ -2333,4 +2336,61 @@ struct WMBusPacketMessage : public Message {
+     uint16_t length = 0;
+     uint8_t data[500] = {0};
+ };
++// LoRa configure message (M0  M4)
++class LoRaConfigureMessage : public Message {
++   public:
++    constexpr LoRaConfigureMessage(
++        uint8_t spreading_factor = 7,
++        uint32_t bandwidth = 125000,
++        uint8_t coding_rate = 5,
++        uint32_t local_node_id = 0)
++        : Message{ID::LoRaConfigure},
++          spreading_factor{spreading_factor},
++          bandwidth{bandwidth},
++          coding_rate{coding_rate},
++          local_node_id{local_node_id} {}
++
++    uint8_t spreading_factor;
++    uint32_t bandwidth;
++    uint8_t coding_rate;
++    // Our Meshtastic node id: the demodulator validates a candidate header by its
++    // destination field, and must accept unicast frames addressed to us (direct
++    // messages, ACKs) besides broadcasts. 0 = broadcast only.
++    uint32_t local_node_id;
++};
++
++// LoRa decoded packet message (M4  M0)
++class LoRaPacketMessage : public Message {
++   public:
++    static constexpr size_t MAX_DATA{255};
++
++    LoRaPacketMessage()
++        : Message{ID::LoRaPacket} {}
++
++    uint8_t length{0};
++    int8_t rssi{0};  // approximate dBm from the CSS peak power (0 = unknown)
++    // Signal to noise in tenths of a dB, from how much of the dechirped spectrum sits
++    // in the winning bin. The app used to pass a hardcoded zero, so every node in the
++    // list reported 0.0 dB whatever the link was really like.
++    int16_t snr_tenths{0};
++    uint8_t data[MAX_DATA]{};
++    enum class PayloadCrc : uint8_t { Unchecked, Pass, Fail, Incomplete };
++    PayloadCrc payload_crc{PayloadCrc::Unchecked};
++    uint16_t missed_buffers{0};
++};
++
++// LoRa reception status (M4  M0): true once a packet's header is locked and its
++// payload is streaming, false when that packet ends (delivered or abandoned).
++// The application uses it to listen before talking: switching to the TX baseband
++// unloads the demodulator, so transmitting mid-packet destroys the reception.
++class LoRaRxStatusMessage : public Message {
++   public:
++    constexpr LoRaRxStatusMessage(bool receiving = false)
++        : Message{ID::LoRaRxStatus}, receiving{receiving} {}
++
++    bool receiving;
++};
++
++
++
+ #endif /*__MESSAGE_H__*/
+diff --git a/firmware/common/portapack_shared_memory.hpp b/firmware/common/portapack_shared_memory.hpp
+index 8f5029e..008b286 100644
+--- a/firmware/common/portapack_shared_memory.hpp
++++ b/firmware/common/portapack_shared_memory.hpp
+@@ -53,6 +53,25 @@ struct ToneData {
+     uint8_t message[256];
+ };
+ 
++// LongFast and other presets using the streaming LoRa decoder. Only M4 writes
++// these counters. They survive an RX/TX baseband image switch.
++enum class LoRaRxStage : size_t {
++    PreambleCandidate,
++    PreambleLock,
++    SfdLock,
++    HeaderSearch,
++    HeaderLock,
++    FrameComplete,
++    SfdTimeout,
++    HeaderReject,
++    StaleWindow,
++    PayloadTimeout,
++    MissedBuffers,
++    Count,
++};
++
++constexpr size_t lora_rx_stage_count = static_cast<size_t>(LoRaRxStage::Count);
++
+ /* NOTE: These structures must be located in the same location in both M4 and M0 binaries */
+ struct SharedMemory {
+     static constexpr size_t application_queue_k = 11;
+@@ -93,6 +112,7 @@ struct SharedMemory {
+     uint32_t volatile m4_baseband_loops{0};   // Main loop iterations
+     uint8_t volatile m4_streaming_marker{0};  // Proves streaming_enable() called
+ #endif
++    uint32_t volatile lora_rx_stages[lora_rx_stage_count]{};
+ };
+ 
+ extern SharedMemory& shared_memory;
+diff --git a/firmware/common/spi_image.hpp b/firmware/common/spi_image.hpp
+index a2b6d8a..a4e70bd 100644
+--- a/firmware/common/spi_image.hpp
++++ b/firmware/common/spi_image.hpp
+@@ -86,6 +86,8 @@ constexpr image_tag_t image_tag_ais{'P', 'A', 'I', 'S'};
+ constexpr image_tag_t image_tag_am_audio{'P', 'A', 'M', 'A'};
+ constexpr image_tag_t image_tag_am_tv{'P', 'A', 'M', 'T'};
+ constexpr image_tag_t image_tag_capture{'P', 'C', 'A', 'P'};
++constexpr image_tag_t image_tag_lora_rx{'P', 'L', 'O', 'R'};
++constexpr image_tag_t image_tag_lora_tx{'P', 'L', 'O', 'T'};
+ constexpr image_tag_t image_tag_ert{'P', 'E', 'R', 'T'};
+ constexpr image_tag_t image_tag_epirb_rx{'P', 'E', 'P', 'I'};
+ constexpr image_tag_t image_tag_epirb_tx{'P', 'E', 'P', 'T'};
+--- a/firmware/application/apps/ui_meshtastic.cpp
++++ b/firmware/application/apps/ui_meshtastic.cpp
+@@ -42,6 +42,24 @@
+ // 4 KB process stack. The buffer is only ever live between building a packet and
+ // handing it to queue_tx (which copies it), and the UI runs on one thread, so a single
+ // buffer serves them all.
++// Integration measurement build: load only this app's own radio images.
++bool load_mesh_baseband(const char* filename) {
++    File image;
++    if (image.open(filename) || !image.size() ||
++        image.size() > portapack::memory::map::m4_code.size()) return false;
++    const auto size = image.size();
++    size_t offset = 0;
++    while (offset < size) {
++        const auto count = std::min<size_t>(512, size - offset);
++        auto result = image.read(reinterpret_cast<void*>(
++            portapack::memory::map::m4_code.base() + offset), count);
++        if (!result || result.value() != count) return false;
++        offset += count;
++    }
++    baseband::run_prepared_image(portapack::memory::map::m4_code.base(), true, {});
++    return true;
++}
++
+ uint8_t pkt_scratch[meshtastic::PKT_MAX_SIZE];
+ 
+ // The alert bell as it travels. Clients key on the ASCII character; the phone app
+@@ -5888,7 +5906,12 @@
+     // had dialled in on the chat row moments earlier. enable() below re-applies the
+     // model's stored LNA/VGA/amp, which is what the L/V/A fields edit.
+ 
+-    baseband::run_image(portapack::spi_flash::image_tag_lora_rx);
++    if (!load_mesh_baseband("BASEBAND/PLOR.bin")) {
++        receiver_model.disable();
++        transmitter_model.disable();
++        nav_.display_modal("LoRa image missing", "Copy matching PLOR.bin\nto SD BASEBAND folder.");
++        return;
++    }
+     receiver_model.enable();
+     // Configure again almost immediately rather than half a second later. The repeat
+     // exists because the first message can land while the M4 is still coming up, and
+@@ -5951,7 +5974,12 @@
+     transmitter_model.set_rf_amp(true);
+     transmitter_model.set_tx_gain(active_tx_gain());
+ 
+-    baseband::run_image(portapack::spi_flash::image_tag_lora_tx);
++    if (!load_mesh_baseband("BASEBAND/PLOT.bin")) {
++        receiver_model.disable();
++        transmitter_model.disable();
++        nav_.display_modal("LoRa image missing", "Copy matching PLOT.bin\nto SD BASEBAND folder.");
++        return;
++    }
+     const auto& preset = MODEM_PRESETS[cfg_.preset_idx];
+     baseband::set_lora_config(preset.sf, preset.bw_hz, active_coding_rate());
+     baseband::send_lora_packet(tx_buf_, tx_len_);
+
