@@ -79,5 +79,14 @@ Initial compilation found the new loader needed native UTF-16 paths. That was co
 RX M4 code linked at 30904 bytes and TX at 11128 bytes in the first measurement run.
 All nine host test programs passed on the Linux runner.
 A subsequent local adjustment defers TX enable until image load and clears TX flags on failure; it is not yet in the active hosted measurement run.
-Final M0 link and firmware space results are pending.
+The measurement candidate compiled the M0 application and M4 radio code, but final SPI image generation failed:
+- Required image size: 1,158,152 bytes.
+- HackRF firmware limit: 1,048,576 bytes.
+- Excess: 109,576 bytes (about 107 KiB).
+- Run: https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45275799111
+
+This is a size failure, not a passing firmware package. No flashable image from this candidate is offered.
+The candidate retains the full internal UI for measurement, excludes the repeater and global baseband relocation, and places LoRa RX/TX on SD.
+The result supports the maintainer's prior concern about full-app integration. Further implementation depends on Craig choosing a smaller external feature set or a full-feature maintainer proposal.
+
 
