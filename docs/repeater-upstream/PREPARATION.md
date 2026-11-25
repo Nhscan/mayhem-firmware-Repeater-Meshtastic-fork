@@ -17,7 +17,7 @@ The UI is external, but the engine and file workers remain internal for this fir
 
 ## Validation
 
-All five existing portable regression programs passed locally before formatting:
+All five existing portable regression programs passed locally before and after formatting, and on the hosted Linux build:
 
 - Control: 1,000 automatic cycles, timing, quiet mode, repeats/gaps, cancellation and timer wrap.
 - SUB parsing: RAW/BinRAW, modulation presets, malformed/unsupported input.
@@ -25,9 +25,22 @@ All five existing portable regression programs passed locally before formatting:
 - Quality/UI: retained prebuffer/drop accounting and repaint throttling.
 - Files: real conversion routines, pulse timing, circular-buffer reorder and error cleanup.
 
-The host compiler reports an uninitialized-state warning in an existing upstream Security+ v1 decoder when assigning a temporary during repeater decoder reset. That needs review before submission; passing host tests do not establish all protocol decoders are correct.
+The host compiler identified an uninitialized array in the existing upstream Security+ v1 decoder when assigning a temporary during repeater decoder reset. The candidate now initializes that array. Passing host tests do not establish all protocol decoders are correct.
 
-Hosted ARM build, flash size and external app layout validation are pending. The matching workflow records build logs and maps. No firmware from this isolated branch has been flashed or physically tested.
+The first hosted ARM run compiled and linked the application and radio images, then failed final SPI image generation:
+
+| Item | Result |
+| --- | ---: |
+| Required final firmware image | 1,066,628 bytes |
+| HackRF One flash limit | 1,048,576 bytes |
+| Overflow | 18,052 bytes |
+| External UI linked section | 14,984 bytes |
+| Capture radio linked flash | 24,608 bytes |
+| Recorded audio TX linked flash | 18,496 bytes |
+
+[Initial measurement run](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45514616884), commit bd4ac213a5c2d435471ba78dddb67828cf183aa0.
+That is a failed firmware package, not a passing build. Additional validation reports app relocation/checksum and retained SPI images even if the final firmware exceeds flash. The decoder-array initialization is a subsequent change.
+No firmware from this isolated branch has been flashed or physically tested.
 
 ## Before asking maintainers to review code
 

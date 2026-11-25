@@ -128,7 +128,7 @@ class FProtoSubGhzDSecPlusV1 : public FProtoSubGhzDBase {
    protected:
     uint8_t packet_accepted = 0;
     uint8_t base_packet_index = 0;
-    uint8_t data_array[44];
+    uint8_t data_array[44]{};
 };
 
 #endif
