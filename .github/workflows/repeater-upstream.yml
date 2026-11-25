@@ -26,13 +26,15 @@ jobs:
       - name: Build repeater-only firmware
         run: |
           set -o pipefail
-          export VERSION_STRING=n_261124_rptprobe
+          export VERSION_STRING=rpt_$(git rev-parse --short=7 HEAD)
           cmake -S . -B build -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 2>&1 | tee configure.log
           build_status=0
           cmake --build build --target oci -j4 2>&1 | tee build.log || build_status=$?
           python3 tests/auto_repeater/check_build.py build | tee layout.log
+          python3 tests/auto_repeater/check_runtime_memory.py build | tee memory.log
           arm-none-eabi-size build/firmware/application/application.elf build/firmware/baseband/baseband_capture.elf build/firmware/baseband/baseband_repeater_audio.elf | tee sizes.log
           if [ "$build_status" -eq 0 ]; then python3 tests/auto_repeater/check_install.py build | tee install.log; fi
+          git rev-parse HEAD > build/firmware/repeater-candidate-commit.txt
           exit "$build_status"
       - name: Save unflashed test candidate
         uses: actions/upload-artifact@v4
@@ -41,6 +43,7 @@ jobs:
           path: |
             build/firmware/*.ppfw.tar
             build/firmware/portapack-mayhem-firmware.bin
+            build/firmware/repeater-candidate-commit.txt
             docs/repeater-upstream/USER-GUIDE-DRAFT.md
       - name: Save validation evidence
         if: always()
@@ -51,6 +54,7 @@ jobs:
             configure.log
             build.log
             layout.log
+            memory.log
             sizes.log
             install.log
             build/firmware/application/application.map

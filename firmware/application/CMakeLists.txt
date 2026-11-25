@@ -552,6 +552,7 @@ add_custom_command(OUTPUT ${REPEATER_BASEBAND_DIR}/ARSV.bin
 add_custom_target(repeater_reserve DEPENDS ${REPEATER_BASEBAND_DIR}/ARSV.bin)
 add_dependencies(repeater_reserve baseband)
 add_dependencies(application repeater_reserve)
+add_dependencies(application.elf repeater_reserve)
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/repeater_images.hpp
     COMMAND python3 ${PROJECT_SOURCE_DIR}/../tools/make_repeater_manifest.py ${CMAKE_CURRENT_BINARY_DIR}/repeater_images.hpp ${REPEATER_BASEBAND_DIR}/PRCP.bin ${REPEATER_BASEBAND_DIR}/PRAT.bin
@@ -559,4 +560,5 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/repeater_images.hpp
 add_custom_target(repeater_manifest DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/repeater_images.hpp)
 add_dependencies(repeater_manifest baseband)
 add_dependencies(application repeater_manifest)
+add_dependencies(application.elf repeater_manifest)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
