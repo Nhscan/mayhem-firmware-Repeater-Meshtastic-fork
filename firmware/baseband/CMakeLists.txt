@@ -400,6 +400,9 @@ set(MODE_CPPSRC
 )
 DeclareTargets(PCAP capture)
 
+set(MODE_CPPSRC proc_repeater_audio.cpp)
+DeclareTargets(PRAT repeater_audio)
+
 ### Radiosonde
 
 set(MODE_CPPSRC

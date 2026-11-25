@@ -210,6 +210,8 @@ set(CPPSRC
 	${COMMON}/gpio.cpp
 	app_settings.cpp
 	audio.cpp
+	repeater_engine.cpp
+	repeater_files.cpp
 	baseband_api.cpp
 	capture_thread.cpp
 	clock_manager.cpp
@@ -537,3 +539,16 @@ add_custom_target(
 )
 
 add_dependencies(${PROJECT_NAME} baseband)
+
+# Reserve the largest radio image so switching M4 modes cannot overwrite the external UI.
+set(REPEATER_BASEBAND_DIR ${CMAKE_BINARY_DIR}/firmware/baseband)
+set(REPEATER_IMAGE_FILES)
+foreach(image PCAP PREP PAMA PNFM PWFM PRAT)
+    list(APPEND REPEATER_IMAGE_FILES ${REPEATER_BASEBAND_DIR}/${image}.bin)
+endforeach()
+add_custom_command(OUTPUT ${REPEATER_BASEBAND_DIR}/ARSV.bin
+    COMMAND python3 ${PROJECT_SOURCE_DIR}/../tools/make_repeater_reserve.py ${REPEATER_BASEBAND_DIR}/ARSV.bin ${REPEATER_IMAGE_FILES}
+    DEPENDS ${REPEATER_IMAGE_FILES} ${PROJECT_SOURCE_DIR}/../tools/make_repeater_reserve.py)
+add_custom_target(repeater_reserve DEPENDS ${REPEATER_BASEBAND_DIR}/ARSV.bin)
+add_dependencies(repeater_reserve baseband)
+add_dependencies(application repeater_reserve)

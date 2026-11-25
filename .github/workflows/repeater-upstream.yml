@@ -1,0 +1,47 @@
+name: Repeater upstream integration validation
+on:
+  push:
+    branches: [upstream/repeater-only]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Check external registration and host regressions
+        run: |
+          python3 tools/update_external_tier_ld.py --check
+          python3 tests/auto_repeater/run_host_tests.py
+      - name: Install ARM build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build cmake python3-yaml python3-pyelftools python3-lz4 lz4 dfu-util
+          mkdir -p "$RUNNER_TEMP/arm"
+          wget -qO "$RUNNER_TEMP/arm/toolchain.tar.bz2" https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
+          tar -xjf "$RUNNER_TEMP/arm/toolchain.tar.bz2" -C "$RUNNER_TEMP/arm"
+          echo "$RUNNER_TEMP/arm/gcc-arm-none-eabi-9-2019-q4-major/bin" >> "$GITHUB_PATH"
+      - name: Build repeater-only firmware
+        run: |
+          set -o pipefail
+          export VERSION_STRING=n_261124_rptprobe
+          cmake -S . -B build -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 2>&1 | tee configure.log
+          cmake --build build --target oci -j4 2>&1 | tee build.log
+          python3 tests/auto_repeater/check_build.py build | tee layout.log
+          arm-none-eabi-size build/firmware/application/application.elf build/firmware/baseband/baseband_capture.elf build/firmware/baseband/baseband_repeater_audio.elf | tee sizes.log
+      - name: Save validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repeater-upstream-validation
+          path: |
+            configure.log
+            build.log
+            layout.log
+            sizes.log
+            build/firmware/application/application.map
+            build/firmware/baseband/baseband_capture.map
+            build/firmware/baseband/baseband_repeater_audio.map
+          if-no-files-found: warn

@@ -120,6 +120,7 @@ MEMORY
     ram_external_app_subghz_chat           (rwx) : org = 0xAE0F0000, len = 32k
     ram_external_app_vdl2_rx               (rwx) : org = 0xAE100000, len = 32k
     ram_external_app_horus_rx              (rwx) : org = 0xAE110000, len = 32k
+    ram_external_app_auto_repeater         (rwx) : org = 0xAE120000, len = 32k
 }
 
 SECTIONS
@@ -705,4 +706,10 @@ SECTIONS
         KEEP(*(.external_app.app_horus_rx.application_information));
         */external/horus_rx/*(*ui*external_app*horus_rx*);
     } > ram_external_app_horus_rx
+
+    .external_app_auto_repeater : ALIGN(4) SUBALIGN(4)
+    {
+        KEEP(*(.external_app.app_auto_repeater.application_information));
+        */external/auto_repeater/*(*ui*external_app*auto_repeater*);
+    } > ram_external_app_auto_repeater
 }
