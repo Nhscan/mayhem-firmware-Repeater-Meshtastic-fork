@@ -1,6 +1,6 @@
 # Draft: Add Auto Repeater external Transceiver app
 
-Status: preparation only. Do not submit until the exact candidate compiles, passes layout/memory checks and has been physically tested and reviewed by the contributor.
+Status: preparation only. Software checks passed; physical testing and contributor review remain pending. Craig has explicitly requested no upstream submission.
 
 ## Brief description
 
@@ -14,7 +14,19 @@ Meshtastic and combined-fork updater/release changes are excluded. This contribu
 
 ## Proof it compiles
 
-Pending: successful final ARM build, final flash-space summary, external app size/reserve check and runtime memory assessment. A successful host test is not a successful firmware build.
+[Passing build](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45519543490), source `d24764597b3496fafde86f21a911e9c2dc2cbfb6`, identifier `rpt_d247645`.
+
+```text
+Space remaining in flash ROM: 1280 bytes (0.1%)
+PASS external UI: 15572 bytes + 23220 bytes radio reserve / 40960
+PASS built-in capture/replay/audio/updater/factory images retained
+PASS capture known heap: 72592/78732 bytes, 6140 bytes headroom
+PASS repeater_capture known heap: 73228/78732 bytes, 5504 bytes headroom
+PASS recorded audio known heap: 33888/79836 bytes, 45948 bytes headroom
+PASS firmware: 1 MiB, checksum valid, USTAR update with exact apps/radio files before firmware
+```
+
+All six host regression programs passed. Flash margin is small and must be rechecked after any rebase. These checks do not establish physical RF performance.
 
 ## Proof of physical device testing
 

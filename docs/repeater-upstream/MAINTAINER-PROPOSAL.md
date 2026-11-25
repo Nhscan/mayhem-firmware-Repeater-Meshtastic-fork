@@ -1,29 +1,34 @@
-# Auto Repeater: maintainer scope proposal
+# Auto Repeater maintainer discussion draft
 
-I would like guidance on an acceptable scope for an Auto Repeater contribution to Mayhem. I have separated the repeater from my Meshtastic fork and measured it against upstream next before opening a PR.
+I have separated Auto Repeater from my Meshtastic fork and prepared a version against Mayhem next at `5bc230848cb17c666f34d07b70062bed682da1a2`. It now passes an ARM build and software checks, but I still need to test this exact version on physical hardware before an implementation PR.
 
-The app records a threshold-triggered signal, waits a configured delay, plays it back on the selected TX frequency and returns to listening. It also offers manual playback, recording retention, gain settings and repeat/cooldown controls. The existing combined fork has been tested on my PortaPack; the newly isolated candidate still needs physical testing.
+The app records a threshold-triggered signal, waits a configured delay, transmits it on the chosen frequency and returns to listening. It also supports manual playback, retained IQ/WAV recordings, timing/gain controls, RX hopping, optional protocol recognition and RAW/BinRAW SUB conversion. The existing combined fork has user-tested hardware history; that is background rather than proof for this new candidate.
 
-## Integration and measured limitation
+## Integration
 
-The interface is an external Transceiver app on the SD card. The engine and file workers currently remain in firmware. Capture/replay/audio images switch beneath the external UI, so the app reserves the largest image's code region to avoid overwrite.
+The interface and a small radio-file loader are external. The engine and file workers currently remain in main firmware. Only optional capture-recognition and recorded-audio TX modules load from SD; normal built-in Capture, Replay and Audio RX keep their existing SPI storage and global loading behavior.
 
-The isolated branch retains normal built-in baseband SPI storage and excludes Meshtastic, global SD-loader changes, updater changes and combined-fork releases.
+The SD loader checks exact size, a build-generated integrity value, read completion and the space reserved below the external UI before starting M4. The update archive contains matching assets. CaptureThread exposes a stop/join operation and optional writer stack size while retaining upstream's termination/wakeup behavior. Meshtastic and the broad global SD relocation are excluded.
 
-The initial build against upstream 5bc230848cb17c666f34d07b70062bed682da1a2 compiled and linked, but final image generation required 1,066,628 bytes against the HackRF One limit of 1,048,576 bytes: **18,052 bytes too large**. The external UI linked section was 14,984 bytes. Capture linked at 24,608 bytes and recorded-audio TX at 18,496 bytes, so simply moving the remaining engine into that same external region is not a demonstrated solution.
+## Measurements
 
-[Source and preparation branch](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/tree/upstream/repeater-only)
+[Validated source](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/commit/d24764597b3496fafde86f21a911e9c2dc2cbfb6)
 
-[Initial ARM build and size evidence](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45514616884)
+[Passing build and logs](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45519543490)
 
-Five portable regression programs passed locally and on Linux, including 1,000 automatic control cycles, file conversion, waveform recognition and capture-quality accounting. These are software checks, not RF or hardware proof of this candidate.
+| Check | Result |
+| --- | ---: |
+| Host regression programs | 6 passed |
+| Remaining HackRF One flash | 1,280 bytes |
+| External UI + radio reserve | 38,792 / 40,960 bytes |
+| Repeater capture known heap headroom | 5,504 bytes |
+| Recorded audio known heap headroom | 45,948 bytes |
+| USTAR updater and matching files | Passed |
 
-## Requested guidance
+The flash margin is tight. The memory checks bound known allocations rather than proving hardware timing or fragmentation behavior. Earlier attempts keeping the new radio modules in SPI exceeded flash; the app-specific SD arrangement resolves that measured failure without moving other apps' basebands.
 
-Would you consider a focused automatic IQ capture/replay app first, with file conversion, live protocol recognition and recorded-audio modes left for later? Or would you prefer a full-feature version with a separately reviewed, app-specific storage/loading design?
+Would this integration be an acceptable direction to review after hardware testing, or would you prefer an initial PR with a smaller feature set? I would like agreement on scope and the app-specific SD assets before submitting the implementation.
 
-I would keep the full-feature working fork available while preparing any smaller upstream version. I am not proposing to relocate the other apps' basebands, raise the flash limit or submit an oversized build.
+Before a PR, I would supply exact-build physical/RF evidence, screenshots, operating instructions and attribution/license review. Development and preparation used AI assistance and require contributor ownership and human review.
 
-Before an implementation PR, I would provide a passing build with flash/RAM and app-layout evidence, physical testing of that exact version, real RF peer evidence, screenshots, documentation and attribution/license review. Development and this preparation used AI assistance; contributor ownership and human review are required.
-
-This is a discussion draft. No maintainer message, upstream issue or PR has been sent for it.
+This remains an unsent discussion draft. Craig has requested no upstream PR, issue or maintainer message at this stage.

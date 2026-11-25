@@ -1,6 +1,14 @@
 # Auto Repeater user guide draft
 
-This describes the full-feature candidate's controls. The initial isolated build exceeded the HackRF One flash limit. A revision moves only the extra repeater radio modules to SD and is undergoing validation; do not treat this branch as an installable release. Existing working fork releases remain separate.
+This describes the repeater-only test candidate `d24764597b3496fafde86f21a911e9c2dc2cbfb6`, firmware identifier `rpt_d247645`. The ARM build, host tests, memory/layout and updater checks passed. Physical testing is pending; this is not a hardware-validated release. No flashing or upstream submission has been performed.
+
+## Candidate files and future installation
+
+[Test candidate download](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45519543490/artifacts/14980265350). Extract the ZIP to find the files under `build/firmware`. `portapack-mayhem_OCI.ppfw.tar` is the SD updater archive; the matching `.bin` is the raw USB/recovery image. The commit text file identifies the source.
+
+When ready to test, back up the current SD contents and keep the known working firmware available. Copy the complete `.ppfw.tar` to the SD card's FIRMWARE directory and select it through the PortaPack firmware flash/update menu. The archive contains matching APPS, BASEBAND and FIRMWARE entries; do not mix its app or radio modules with another firmware build. For a manual SD layout, extract APPS and BASEBAND to the SD root and use the matching firmware image.
+
+This candidate intentionally excludes Meshtastic. It is for testing the isolated repeater integration. Optional recognition needs `BASEBAND/PRCP.bin`; recorded-audio TX needs `BASEBAND/PRAT.bin`. A missing, corrupt or mismatched module produces an app error before RX/TX is enabled.
 
 ## Automatic recording and playback
 

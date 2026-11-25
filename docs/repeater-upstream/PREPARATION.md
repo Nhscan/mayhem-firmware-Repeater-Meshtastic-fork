@@ -1,60 +1,56 @@
-# Auto Repeater upstream preparation
+# Auto Repeater integration and validation
 
-This branch separates Auto Repeater from Meshtastic for review against Mayhem next at `5bc230848cb17c666f34d07b70062bed682da1a2`.
-Source was extracted from Nhscan's tested combined fork at `d2113491810f9877a087c0d43bea785d93bfecbd`.
+Status: software validation passed; hardware validation pending. This branch is for preparation only and has not been submitted upstream.
 
-## Current scope
+Validated source: `d24764597b3496fafde86f21a911e9c2dc2cbfb6`. Baseline: Mayhem next at `5bc230848cb17c666f34d07b70062bed682da1a2`. Repeater source was separated from Nhscan's combined fork at `d2113491810f9877a087c0d43bea785d93bfecbd`.
 
-- External Transceiver app UI: receive/transmit frequencies, trigger threshold, delay, repeat/cooldown controls, recording/file playback, gain controls and status.
-- Internal engine and file workers: circular prebuffer, capture quality checks, metadata, RAW/BinRAW SUB conversion and playback scheduling.
-- CaptureThread: explicit stop/join while retaining counters and optional writer stack size. Existing upstream shutdown/wakeup fixes remain intact; normal callers keep the 1024-byte default.
-- Capture DSP: optional IQ-envelope protocol recognition in a separate SD module (PRCP); the normal built-in Capture image excludes it.
-- Recorded audio TX baseband: AM/FM/SSB playback using existing modulators in SD module PRAT.
-- ARSV reserve image: keeps the external UI above the largest baseband it switches to in the shared 40 KiB code region.
+## Final integration
 
-This candidate preserves normal built-in baseband SPI storage. Only PRCP/PRAT are app-specific SD modules; their size and build-generated integrity hash are checked before startup. It excludes Meshtastic, the global SD-loading fallback, updater alterations, combined-fork release packages and README replacements.
-The UI is external, but the engine and file workers remain internal for this first measurement. This is not yet a fully external implementation or a stock-firmware-compatible app download.
+- External Transceiver UI with automatic/manual recording and playback, RX/TX frequencies, timing, gain, retention, status and file controls.
+- Main-firmware engine and file workers retain prebuffer handling, capture quality, metadata, RAW/BinRAW SUB conversion and playback scheduling.
+- CaptureThread gains explicit stop/join while retaining counters and an optional writer stack size. Existing upstream termination/wakeup fixes and the default 1024-byte stack remain intact for other callers.
+- Normal PCAP excludes the repeater recognizers. Optional recognition runs in the separate PRCP SD module; recorded AM/FM/SSB TX runs in PRAT.
+- The app-scoped loader checks file size, available reserve space, read completion and a build-generated FNV-1a integrity value before starting M4. Missing/mismatched modules return an app error before RX/TX enable.
+- ARSV reserves the largest radio image beneath the external UI. CMake dependencies generate this reserve and the matching radio manifest before app compilation.
+- Normal built-in baseband SPI images and the global loader remain intact. One existing prepared-image API is declared in the public header for the scoped loader; its implementation is unchanged.
+- The updater archive adds only PRCP/PRAT under BASEBAND and uses USTAR. Apps and SD modules precede the firmware entry.
+- An uninitialized array in the existing Security+ v1 decoder is initialized because resetting its object exposed an uninitialized-copy warning. No new protocol is added.
 
-## Validation
+Meshtastic, global SD-loader fallback, updater implementation changes, combined-fork release downloads and project README replacements are excluded.
 
-All five existing portable regression programs passed locally before and after formatting, and on the hosted Linux build:
+## Evidence
 
-- Control: 1,000 automatic cycles, timing, quiet mode, repeats/gaps, cancellation and timer wrap.
-- SUB parsing: RAW/BinRAW, modulation presets, malformed/unsupported input.
-- OOK: generated IQ-envelope waveform decoded as a known Princeton packet; decoding disabled in normal raw mode.
-- Quality/UI: retained prebuffer/drop accounting and repaint throttling.
-- Files: real conversion routines, pulse timing, circular-buffer reorder and error cleanup.
+[Passing GNU Arm GCC 9.2.1 / Ninja build](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45519543490). Build identifier `rpt_d247645`.
 
-The host compiler identified an uninitialized array in the existing upstream Security+ v1 decoder when assigning a temporary during repeater decoder reset. The candidate now initializes that array. Passing host tests do not establish all protocol decoders are correct.
+Six regression programs pass locally and on Linux: control (including 1,000 automatic cycles), SUB parsing, actual IQ envelope recognition, capture quality/UI repaint logic, real file conversion routines and SD radio copy/integrity failure handling.
 
-The first hosted ARM run compiled and linked the application and radio images, then failed final SPI image generation:
+The known digest fixture also passed for the Python radio-manifest generator; unaligned image input was rejected.
 
-| Item | Result |
+| Check | Result |
 | --- | ---: |
-| Required final firmware image | 1,066,628 bytes |
-| HackRF One flash limit | 1,048,576 bytes |
-| Overflow | 18,052 bytes |
-| External UI linked section | 14,984 bytes |
-| Capture radio linked flash | 24,608 bytes |
-| Recorded audio TX linked flash | 18,496 bytes |
+| Remaining 1 MiB flash | 1,280 bytes |
+| External UI | 15,572 bytes |
+| Largest reserved radio image | 23,220 bytes |
+| Combined code use / limit | 38,792 / 40,960 bytes |
+| M0 linked static RAM use | 21,024 / 65,536 bytes |
+| Normal capture known heap headroom | 6,140 bytes |
+| Repeater capture known heap headroom | 5,504 bytes |
+| Recorded audio known heap headroom | 45,948 bytes |
 
-[Initial measurement run](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45514616884), commit bd4ac213a5c2d435471ba78dddb67828cf183aa0.
-That is a failed firmware package, not a passing build. Additional validation reports app relocation/checksum and retained SPI images even if the final firmware exceeds flash. The decoder-array initialization is a subsequent change.
-No firmware from this isolated branch has been flashed or physically tested.
+The layout checker validates actual app relocation, checksum, reserve content, overlap limits and retained built-in SPI images. The memory checker reads linked ELF types and heap symbols and accounts for processor/stream objects, buffers, DMA and allocator slack. It is a static budget check, not a hardware fragmentation/timing measurement.
 
-## Before asking maintainers to review code
+The install checker validates the exact 1 MiB firmware checksum and the USTAR archive, verifies packaged app/radio/firmware bytes against the build outputs and checks that SD assets precede firmware.
 
-1. Complete ARM compilation and verify flash, M0/M4 memory and external UI/radio overlap limits.
-2. Resolve any integration failures and review the decoder warning.
-3. Review whether internal engine/file-code footprint is acceptable or a smaller external feature set is needed.
-4. Check runtime allocations, capture shutdown, file-worker teardown and radio changes against existing apps.
-5. Build a matching install package and test this exact candidate on physical PortaPack hardware and real RF peers.
-6. Add current screenshots/video, clear operating instructions, limitations and attribution/license review.
-7. Present the final diff and description to Craig for review before opening an upstream PR.
+## Remaining work before submission
 
-The original fork has user-reported successful hardware tests. Those do not substitute for testing this isolated candidate.
-No upstream issue, maintainer message or PR has been submitted for this branch.
+1. Physically test this exact candidate: UI, repeated automatic IQ/audio cycles, real RF peers, gain, stop/cancel and app exit/re-entry.
+2. Test saved files, missing/mismatched SD modules, SD errors and normal Capture/Replay/Audio RX after the integration.
+3. Collect exact settings, hardware model, screenshots/video and source/build identification.
+4. Review final code, licensing/attribution, contribution guidelines and wiki commitments with the contributor.
+5. Obtain Craig's explicit instruction before any upstream interaction; current instruction is preparation only.
 
-## App-specific SD radio revision
+The 1,280-byte flash margin is small. A future upstream rebase may exceed it and requires a fresh build. Earlier combined-fork hardware tests do not validate this isolated candidate.
 
-After the initial size failure, PRCP capture recognition and PRAT audio TX moved to BASEBAND on SD. The repeater loader checks exact image length, available reserved memory, read completion and a build-generated FNV-1a integrity value before starting M4. Failures return an app error before RX/TX enable. Normal built-in Capture, Replay and audio loading is unchanged. The updater package includes the matching SD modules and uses USTAR. A sixth host regression exercises the actual copy/integrity helper and rejects corrupt, truncated and oversized images. All six host programs passed locally. ARM build and packaging results for this revision are pending.
+## Initial measurement that motivated SD modules
+
+The first isolated version kept the extra radio modules in SPI. It compiled/linked but needed 1,066,628 bytes against the 1,048,576-byte limit, an 18,052-byte overflow. A decoder-initialization follow-up required 1,066,684 bytes. These failed measurements are superseded by the passing SD-module revision above; they were never flashable candidates.
