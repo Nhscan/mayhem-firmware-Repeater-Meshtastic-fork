@@ -11,6 +11,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - uses: actions/cache/restore@v4
+        id: ccache
+        with:
+          path: ~/.cache/ccache
+          key: ${{ runner.os }}-repeater-gcc9-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-repeater-gcc9-
       - name: Check external registration and host regressions
         run: |
           python3 tools/update_external_tier_ld.py --check
@@ -18,7 +24,8 @@ jobs:
       - name: Install ARM build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build cmake python3-yaml python3-pyelftools python3-lz4 lz4 dfu-util
+          sudo apt-get install -y ninja-build cmake ccache python3-yaml python3-pyelftools python3-lz4 lz4 dfu-util
+          ccache --set-config=max_size=250M
           mkdir -p "$RUNNER_TEMP/arm"
           wget -qO "$RUNNER_TEMP/arm/toolchain.tar.bz2" https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
           tar -xjf "$RUNNER_TEMP/arm/toolchain.tar.bz2" -C "$RUNNER_TEMP/arm"
@@ -27,7 +34,7 @@ jobs:
         run: |
           set -o pipefail
           export VERSION_STRING=rpt_$(git rev-parse --short=7 HEAD)
-          cmake -S . -B build -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 2>&1 | tee configure.log
+          cmake -S . -B build -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache 2>&1 | tee configure.log
           build_status=0
           cmake --build build --target oci -j4 2>&1 | tee build.log || build_status=$?
           python3 tests/auto_repeater/check_build.py build | tee layout.log
@@ -61,3 +68,8 @@ jobs:
             build/firmware/baseband/baseband_capture.map
             build/firmware/baseband/baseband_repeater_audio.map
           if-no-files-found: warn
+      - uses: actions/cache/save@v4
+        if: always() && steps.ccache.outputs.cache-hit != 'true'
+        with:
+          path: ~/.cache/ccache
+          key: ${{ runner.os }}-repeater-gcc9-${{ github.sha }}

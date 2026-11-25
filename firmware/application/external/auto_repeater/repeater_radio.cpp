@@ -2,6 +2,7 @@
 #include "repeater_radio.hpp"
 #include "repeater_radio_image.hpp"
 #include "repeater_images.hpp"
+#include "standalone_app.hpp"
 #include "external_app.hpp"
 #include "baseband_api.hpp"
 #include "file.hpp"
