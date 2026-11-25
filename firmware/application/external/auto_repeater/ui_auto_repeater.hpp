@@ -31,7 +31,7 @@ class SignalMeter : public Widget {
     }
 
    private:
-    uint32_t level{0}, threshold{55};
+    int32_t level{0}, threshold{55};
 };
 class HistoryView : public View {
    public:

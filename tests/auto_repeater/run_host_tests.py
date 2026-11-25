@@ -9,7 +9,7 @@ root = Path(__file__).resolve().parents[2]
 out = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else root / 'build/repeater-host-tests'
 out.mkdir(parents=True, exist_ok=True)
 cxx = os.environ.get('CXX', 'g++')
-tests = ['control_test', 'sub_test', 'ook_test', 'quality_ui_test', 'file_test']
+tests = ['control_test', 'sub_test', 'ook_test', 'quality_ui_test', 'file_test', 'radio_image_test']
 for name in tests:
     exe = out / (name + ('.exe' if os.name == 'nt' else ''))
     command = [cxx, '-std=c++17', '-O2', '-Wall', '-Wextra', '-Itests/auto_repeater/stubs',
@@ -23,4 +23,4 @@ for name in tests:
         args.append(str(out / 'files'))
     subprocess.run(args, cwd=root, check=True)
     print('PASS ' + name, flush=True)
-print('PASS all five repeater host regression programs')
+print('PASS all six repeater host regression programs')

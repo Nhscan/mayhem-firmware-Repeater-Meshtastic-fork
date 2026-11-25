@@ -543,7 +543,7 @@ add_dependencies(${PROJECT_NAME} baseband)
 # Reserve the largest radio image so switching M4 modes cannot overwrite the external UI.
 set(REPEATER_BASEBAND_DIR ${CMAKE_BINARY_DIR}/firmware/baseband)
 set(REPEATER_IMAGE_FILES)
-foreach(image PCAP PREP PAMA PNFM PWFM PRAT)
+foreach(image PCAP PREP PAMA PNFM PWFM PRCP PRAT)
     list(APPEND REPEATER_IMAGE_FILES ${REPEATER_BASEBAND_DIR}/${image}.bin)
 endforeach()
 add_custom_command(OUTPUT ${REPEATER_BASEBAND_DIR}/ARSV.bin
@@ -552,3 +552,11 @@ add_custom_command(OUTPUT ${REPEATER_BASEBAND_DIR}/ARSV.bin
 add_custom_target(repeater_reserve DEPENDS ${REPEATER_BASEBAND_DIR}/ARSV.bin)
 add_dependencies(repeater_reserve baseband)
 add_dependencies(application repeater_reserve)
+
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/repeater_images.hpp
+    COMMAND python3 ${PROJECT_SOURCE_DIR}/../tools/make_repeater_manifest.py ${CMAKE_CURRENT_BINARY_DIR}/repeater_images.hpp ${REPEATER_BASEBAND_DIR}/PRCP.bin ${REPEATER_BASEBAND_DIR}/PRAT.bin
+    DEPENDS ${REPEATER_BASEBAND_DIR}/PRCP.bin ${REPEATER_BASEBAND_DIR}/PRAT.bin ${PROJECT_SOURCE_DIR}/../tools/make_repeater_manifest.py)
+add_custom_target(repeater_manifest DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/repeater_images.hpp)
+add_dependencies(repeater_manifest baseband)
+add_dependencies(application repeater_manifest)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})

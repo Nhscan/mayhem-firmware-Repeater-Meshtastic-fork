@@ -32,7 +32,16 @@ jobs:
           cmake --build build --target oci -j4 2>&1 | tee build.log || build_status=$?
           python3 tests/auto_repeater/check_build.py build | tee layout.log
           arm-none-eabi-size build/firmware/application/application.elf build/firmware/baseband/baseband_capture.elf build/firmware/baseband/baseband_repeater_audio.elf | tee sizes.log
+          if [ "$build_status" -eq 0 ]; then python3 tests/auto_repeater/check_install.py build | tee install.log; fi
           exit "$build_status"
+      - name: Save unflashed test candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: repeater-upstream-candidate
+          path: |
+            build/firmware/*.ppfw.tar
+            build/firmware/portapack-mayhem-firmware.bin
+            docs/repeater-upstream/USER-GUIDE-DRAFT.md
       - name: Save validation evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -43,6 +52,7 @@ jobs:
             build.log
             layout.log
             sizes.log
+            install.log
             build/firmware/application/application.map
             build/firmware/baseband/baseband_capture.map
             build/firmware/baseband/baseband_repeater_audio.map

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "ui_auto_repeater.hpp"
+#include "repeater_radio.hpp"
 #include "ui_fileman.hpp"
 #include "baseband_api.hpp"
 #include "string_format.hpp"
@@ -115,6 +116,7 @@ AutoRepeaterView::AutoRepeaterView(NavigationView& nav)
     : nav_{nav} {
     perf = shared_memory.request_m4_performance_counter;
     e.file_processor = ::auto_repeater::process_repeater_files;
+    e.radio_loader = load_repeater_radio;
     add_children({&labels, &rx, &tx, &threshold, &level, &meter, &mode, &delay, &keep, &amp, &protocol, &state, &detail, &counts, &decoded, &start, &settings, &open, &send});
     rx.set_value(s.rx);
     tx.set_value(s.tx);

@@ -39,6 +39,7 @@ class Engine {
     Control control{};
     bool ready{false};
     void (*file_processor)(FileJob&){nullptr};
+    bool (*radio_loader)(bool capture){nullptr};
     int64_t current_rx{145500000}, received_frequency{145500000};
     uint32_t recorded{0}, transmitted{0}, last_stats{0};
     int32_t level{-100};

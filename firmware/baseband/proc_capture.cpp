@@ -54,7 +54,9 @@ void CaptureProcessor::execute(const buffer_c8_t& buffer) {
         }
     }
 
+#ifdef BASEBAND_repeater_capture
     repeater_decoder.feed(out_buffer);
+#endif
     feed_channel_stats(out_buffer);
 
     spectrum_samples += out_buffer.count;
@@ -105,11 +107,13 @@ void CaptureProcessor::on_beep_message(const AudioBeepMessage& message) {
 
 void CaptureProcessor::on_message(const Message* const message) {
     switch (message->id) {
+#ifdef BASEBAND_repeater_capture
         case Message::ID::SubGhzFPRxConfigure:
             chSysLock();
             repeater_decoder.configure(static_cast<const SubGhzFPRxConfigureMessage*>(message)->sampling_rate);
             chSysUnlock();
             break;
+#endif
         case Message::ID::RxFs4Config:
             requested_fs4_direction_.store(
                 static_cast<const RxFs4ConfigMessage*>(message)->direction,

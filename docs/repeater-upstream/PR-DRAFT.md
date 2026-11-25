@@ -8,7 +8,7 @@ Adds an external Auto Repeater interface for triggered RX recording followed by 
 
 The app supports IQ capture/replay and recorded AM/FM/SSB audio using existing radio facilities plus a recorded-audio TX baseband. Optional IQ-envelope recognition and RAW/BinRAW SUB import/export are included in this initial candidate; their final scope depends on footprint and maintainer review.
 
-The UI is external. Engine and file-worker code are currently internal. ARSV reserves the largest switched radio image beneath the UI to prevent overlap. Normal built-in baseband storage and the existing global loader remain unchanged.
+The UI is external. Engine and file-worker code are currently internal. ARSV reserves the largest switched radio image beneath the UI to prevent overlap. Normal built-in baseband storage and the existing global loader remain unchanged. Only repeater capture recognition and recorded-audio TX load from matching, integrity-checked SD modules.
 
 Meshtastic and combined-fork updater/release changes are excluded. This contribution was developed with AI assistance and needs contributor ownership and detailed human review before submission.
 

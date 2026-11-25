@@ -9,7 +9,7 @@ base = build / 'firmware/baseband'
 app = (build / 'firmware/application/auto_repeater.ppma').read_bytes()
 address = struct.unpack_from('<I', app)[0]
 length = struct.unpack_from('<I', app, 80)[0]
-images = ['PCAP', 'PREP', 'PAMA', 'PNFM', 'PWFM', 'PRAT']
+images = ['PCAP', 'PREP', 'PAMA', 'PNFM', 'PWFM', 'PRCP', 'PRAT']
 reserve = max((base / (tag + '.bin')).stat().st_size for tag in images)
 assert app[76:80] == b'ARSV'
 assert address == 0x10080000 + reserve, (address, reserve)
@@ -29,5 +29,6 @@ while offset + 12 <= len(spi):
     assert offset + 12 + size <= len(spi), (tag, size)
     tags.append(tag.decode('ascii'))
     offset += 12 + size
-assert all(tag in tags for tag in images + ['PFUT', 'HRF1']), tags
+assert all(tag in tags for tag in ['PCAP', 'PREP', 'PAMA', 'PNFM', 'PWFM', 'PFUT', 'HRF1']), tags
+assert 'PRCP' not in tags and 'PRAT' not in tags, tags
 print('PASS built-in capture/replay/audio/updater/factory images retained')

@@ -400,8 +400,6 @@ set(MODE_CPPSRC
 )
 DeclareTargets(PCAP capture)
 
-set(MODE_CPPSRC proc_repeater_audio.cpp)
-DeclareTargets(PRAT repeater_audio)
 
 ### Radiosonde
 
@@ -962,6 +960,14 @@ set(MODE_CPPSRC
 )
 DeclareTargets(PUSB sd_over_usb)
 
+
+# App-specific repeater radio modules are SD files, not built-in SPI images.
+set(add_to_firmware FALSE)
+set(MODE_FLAGS "-Os")
+set(MODE_CPPSRC proc_repeater_capture.cpp)
+DeclareTargets(PRCP repeater_capture)
+set(MODE_CPPSRC proc_repeater_audio.cpp)
+DeclareTargets(PRAT repeater_audio)
 
 ### HackRF "factory" firmware
 

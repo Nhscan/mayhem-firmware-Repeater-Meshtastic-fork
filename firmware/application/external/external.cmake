@@ -1,5 +1,6 @@
 set(EXTCPPSRC
 	external/auto_repeater/main.cpp
+	external/auto_repeater/repeater_radio.cpp
 	external/auto_repeater/ui_auto_repeater.cpp
 	#afsk_rx   16 byte
 	external/afsk_rx/main.cpp

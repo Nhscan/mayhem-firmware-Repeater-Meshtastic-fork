@@ -254,11 +254,19 @@ void Engine::listen() {
     receiver_model.disable();
     audio::output::stop();
     if (bb_loaded) baseband::shutdown();
+    bb_loaded = false;
     const bool raw = s.mode == IQ || s.mode == 8;
     auto tag = raw ? spi_flash::image_tag_capture : (s.mode == NFM || s.mode == FM) ? spi_flash::image_tag_nfm_audio
                                                 : s.mode == WFM                     ? spi_flash::image_tag_wfm_audio
                                                                                     : spi_flash::image_tag_am_audio;
-    baseband::run_image(tag);
+    if (s.mode == 8) {
+        if (!radio_loader || !radio_loader(true)) {
+            fail("Missing or mismatched repeater SD radio");
+            return;
+        }
+    } else {
+        baseband::run_image(tag);
+    }
     bb_loaded = true;
     shared_memory.request_m4_performance_counter = 0;
     if (raw) {
@@ -528,8 +536,12 @@ void Engine::start_tx() {
     audio::output::stop();
     transmitter_model.disable();
     if (bb_loaded) baseband::shutdown();
+    bb_loaded = false;
     if (wav) {
-        baseband::run_image({'P', 'R', 'A', 'T'});
+        if (!radio_loader || !radio_loader(false)) {
+            fail("Missing or mismatched repeater SD radio");
+            return;
+        }
         bb_loaded = true;
         const auto mode = s.tx_mode ? s.tx_mode : (playback_mode && playback_mode < 8 ? playback_mode : NFM);
         const uint32_t deviation = mode == NFM ? 2500 : mode == FM ? 5000
