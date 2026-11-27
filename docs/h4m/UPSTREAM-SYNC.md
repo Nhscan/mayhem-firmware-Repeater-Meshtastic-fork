@@ -2,7 +2,7 @@
 
 Status: merged and software-validated. Candidate `pmesh_b889722` passed the ARM build, all host regressions, memory/layout, firmware/app checksums and USTAR updater checks. No device has been flashed; exact-build hardware testing is pending. No upstream PR, issue or code push has been made.
 
-[Validation run](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45920200405) | [Complete SD/Windows package](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45920200405/artifacts/15164580300)
+[Validation run](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45920200405)
 
 Built source commit: `b8897224b99b718455a1f8451e35334e223b2145`. This documentation-only follow-up does not change the packaged firmware.
 
