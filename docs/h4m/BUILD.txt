@@ -1,30 +1,34 @@
-PortaMeshRF branding update: see PORTAMESHRF.md for current setup and key instructions.
-Internal settings/meshtastic.ppma names are retained for upgrade compatibility.
+PORTAMESHRF + AUTO REPEATER: BUILDING THIS FORK
 
-Base: nightly-tag-2026-11-09 (706fd7f91e0318fc4643e8d31f5087ececb312c4).
-Compiler: GNU Arm Embedded GCC 9.2.1 20191025. Use Ninja.
-Needs: CMake, Python3, PyYAML, lz4 CLI, dfu-util including dfu-suffix.
-Checks also need pyelftools and Python lz4.
+Upstream base: see UPSTREAM-COMMIT.txt and UPSTREAM-SYNC.md.
+Use this fork's source, not a patch against the old November 9 nightly.
+Compiler: GNU Arm Embedded GCC 9.2.1 20191025; Ninja.
+Dependencies: CMake, Python3, PyYAML, pyelftools, Python lz4,
+lz4 CLI, dfu-util/dfu-suffix, and a host C++17 compiler for tests.
 
-  git clone --recurse-submodules --branch nightly-tag-2026-11-09 \
-    https://github.com/portapack-mayhem/mayhem-firmware.git
-  cd mayhem-firmware
-  git apply /path/to/h4m-repeater-meshtastic.patch
+  git clone --recurse-submodules --branch next https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork.git
+  cd mayhem-firmware-Repeater-PortaMeshRF-fork
+  python3 tests/check_message_ids.py
+  python3 tests/auto_repeater/run_host_tests.py
+  make -C tools/lora_bench
   python3 tools/update_external_tier_ld.py
-  cmake -S . -B build -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-    -DMAYHEM_CUSTOM_VERSION=n_261109_ar04
-  cmake --build build --target oci -j6
+  version="pmesh_$(git rev-parse --short=7 HEAD)"
+  cmake -S . -B build -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DMAYHEM_CUSTOM_VERSION="$version"
+  cmake --build build --target oci -j4
   python3 tests/auto_repeater/check_layout.py build
   python3 tests/auto_repeater/check_runtime_memory.py build
-  python3 tests/auto_repeater/check_install.py build n_261109_ar04
+  python3 tests/auto_repeater/check_install.py build "$version"
 
-The custom version is cached; Ninja regeneration no longer silently changes it.
-The output is build/firmware/portapack-mayhem_OCI.ppfw.tar.
-The project release tar explicitly places APPS and BASEBAND before FIRMWARE.
-Use check_update_archive.py for the final release archive. SD_CARD includes both
-that archive and the exact 1 MiB .bin for USB installation/recovery.
+Commands above use a Linux shell. The GitHub Actions workflow
+.github/workflows/portameshrf-branding.yml builds and packages on Ubuntu.
+It publishes test artifacts only to this fork; no PR or upstream push.
 
-The complete patch contains the imported Mesh sources, repeater and all host tests.
-See tests/auto_repeater and make -C tools/lora_bench. Source/credits for the
-experimental software-LoRa import remain in CREDITS.txt and MESH-GUIDE.md.
-No physical hardware test is claimed.
+The custom version is cached. Use a clean build directory for another version.
+The workflow creates a USTAR updater archive with APPS and BASEBAND before
+FIRMWARE, then runs check_update_archive.py. Do not substitute an ordinary
+TAR with extended headers; the device updater cannot read those headers.
+
+Keep the matching SD_CARD/APPS and BASEBAND, updater TAR and exact 1 MiB
+BIN together. Internal meshtastic.ppma/settings names are intentionally
+retained for compatibility. See PORTAMESHRF.md for setup and keys.
+Passing software checks does not replace physical H4M RF/UI/SD testing.

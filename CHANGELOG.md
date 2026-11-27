@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased: upstream synchronization
+
+- Merged Mayhem `next` at `c95f6035c7334b4af0a3b25dbc91f459332c7e7f` into this fork, retaining Auto Repeater, the later LongFast RX fixes and PortaMeshRF branding.
+- Integrated upstream capture/replay shutdown, chart/map memory, EPIRB and external-app fixes plus the Horus decoder.
+- Assigned LoRa IPC IDs 128-130 after Horus IDs 126-127; added a collision check and automated repeater/protocol regression checks.
+- Initialized the Security+ v1 decoder's temporary array and regenerated the external-app linker tiers for 105 enabled apps.
+- Refreshed build/install instructions and included matching SD/update/USB files. TX guidance remains in GitHub documentation only.
+- This candidate requires exact-build hardware testing; no flashing or upstream submission is performed.
+
 ## Unreleased: PortaMeshRF branding
 
 - Renamed the mesh app's menu entry and title to PortaMeshRF; added an original three-node icon.
@@ -7,6 +16,16 @@
 - Retained internal filenames, settings keys and node identity for migration compatibility.
 - New firmware requires exact-build physical testing; previous release artifacts are unchanged.
 
+
+## LongFast receive window fix - 2026-11-21
+
+Test firmware `n_261121_rxwin`, based on the ar10 RF meter build.
+
+- Spread the LoRa header search across DMA buffers to reduce missed samples during decoding.
+- Recover the receive cursor when its samples have been overwritten. Allow late windows whose samples are still available.
+- Add LoRa payload CRC diagnostics and counters for receive stages, header rejects, stale windows, and missed sample buffers.
+
+The host tests and firmware layout, runtime memory, install, and Flash Utility archive checks passed. The bench test received 10 of 10 LongFast broadcasts from Mesh A at `L:16 V:14 A:0`. In a separate two-way test, the HackRF received 5 of 5 from Mesh A, and Mesh A received 4 of 5 from the HackRF. OpenWebRX decoded all 10 transmissions.
 
 ## ar09 - 2026-11-21
 

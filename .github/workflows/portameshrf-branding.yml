@@ -1,9 +1,11 @@
-name: PortaMeshRF branding build and package validation
+name: PortaMeshRF firmware and package validation
 on:
   push:
-    branches: [next, build/portameshrf-branding]
+    branches: [next, build/portameshrf-branding, build/portameshrf-upstream-sync]
     paths:
       - 'firmware/**'
+      - 'tests/**'
+      - 'tools/lora_bench/**'
       - '.github/workflows/portameshrf-branding.yml'
 permissions:
   contents: read
@@ -14,6 +16,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 20
+      - name: Host regression tests
+        run: |
+          git merge-base --is-ancestor "$(cat docs/h4m/UPSTREAM-COMMIT.txt)" HEAD
+          python3 tests/check_message_ids.py
+          python3 tests/auto_repeater/run_host_tests.py
+          make -C tools/lora_bench
       - name: Install build tools
         run: |
           sudo apt-get update
@@ -49,11 +58,18 @@ jobs:
           git rev-parse HEAD > candidate/SOURCE-COMMIT.txt
           echo "$version" > candidate/FIRMWARE-VERSION.txt
           cp docs/h4m/PORTAMESHRF.md candidate/PORTAMESHRF.md
-          sha256sum candidate/SD_CARD/FIRMWARE/* > candidate/SHA256SUMS.txt
+          cp docs/h4m/UPSTREAM-COMMIT.txt candidate/UPSTREAM-COMMIT.txt
+          cp docs/h4m/UPSTREAM-SYNC.md candidate/UPSTREAM-SYNC.md
+          cp docs/h4m/INSTALL.txt candidate/INSTALL.txt
+          cp -r flashing candidate/USB_FLASH_WINDOWS
+          mkdir -p candidate/USB_FLASH_WINDOWS/firmware
+          cp build/firmware/portapack-mayhem-firmware.bin candidate/USB_FLASH_WINDOWS/firmware/firmware_hackrf.bin
+          cmp candidate/USB_FLASH_WINDOWS/firmware/firmware_hackrf.bin candidate/SD_CARD/FIRMWARE/PortaMeshRF.bin
+          (cd candidate && sha256sum SD_CARD/FIRMWARE/* USB_FLASH_WINDOWS/firmware/firmware_hackrf.bin > SHA256SUMS.txt)
       - name: Save unflashed test candidate
         uses: actions/upload-artifact@v4
         with:
-          name: PortaMeshRF-${{ github.ref_name == 'next' && 'next' || 'rx-window' }}-${{ github.sha }}
+          name: PortaMeshRF-${{ github.ref_name == 'next' && 'next' || (github.ref_name == 'build/portameshrf-upstream-sync' && 'upstream-sync' || 'rx-window') }}-${{ github.sha }}
           path: candidate/
       - name: Save validation logs
         if: always()
