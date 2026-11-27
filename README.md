@@ -18,7 +18,6 @@ The mesh messaging app is now **PortaMeshRF**, with a new Transceiver menu name,
 PortaMeshRF is independently developed and compatible with the Meshtastic® protocol. It is not affiliated with, sponsored by or endorsed by the Meshtastic project. Meshtastic® is a registered trademark of Meshtastic LLC. Protocol references and original copyright/license notices remain for compatibility and attribution.
 
 - [Current setup and key-import instructions](docs/h4m/PORTAMESHRF.md)
-- [Rebranding candidate with the later receive-window fixes](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/tree/build/portameshrf-branding)
 
 A fork of [PortaPack Mayhem](https://github.com/portapack-mayhem/mayhem-firmware) with Auto Repeater and experimental PortaMeshRF apps compatible with the Meshtastic protocol for **HackRF One + PortaPack H4M**. The complete modified source, build instructions and credits are included.
 
@@ -244,7 +243,7 @@ Ar09 includes the November 21 nightly at `afc728338907a1dcbde26daf7f8b9615208001
 Use GNU Arm Embedded **GCC 9.2.1**, Ninja and the dependencies listed in [BUILD.txt](docs/h4m/BUILD.txt):
 
 ```sh
-git clone --recurse-submodules --branch build/portameshrf-branding https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork.git
+git clone --recurse-submodules --branch next https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork.git
 cd mayhem-firmware-Repeater-PortaMeshRF-fork
 python3 tools/update_external_tier_ld.py
 cmake -S . -B build -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
