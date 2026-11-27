@@ -1,5 +1,8 @@
 # Mayhem Firmware - Repeater + PortaMeshRF Fork
 
+> [!WARNING]
+> **Before transmitting (TX):** check the radio rules for your country, state/province and local area. Make sure the frequency, power, mode and antenna setup are permitted, and obtain any required licence or authorization. You are responsible for lawful operation; this experimental firmware does not guarantee regulatory compliance.
+
 ## PortaMeshRF branding update
 
 The mesh messaging app is now **PortaMeshRF**, with a new Transceiver menu name, screen title and original three-node icon. Saved channel keys, node identity, internal settings identifiers and the `meshtastic.ppma` filename are retained for upgrade compatibility.
@@ -9,6 +12,8 @@ PortaMeshRF is independently developed and compatible with the Meshtastic® prot
 - [Current setup and key-import instructions](docs/h4m/PORTAMESHRF.md)
 - [Rebranding candidate with the later receive-window fixes](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/tree/build/portameshrf-branding)
 - [PortaMeshRF build checks and matching test downloads](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/workflows/portameshrf-branding.yml)
+
+The renamed candidate **pmesh_fd78b7c** passed the ARM build, app-name metadata, memory/layout, checksum and updater-archive checks. [Download the unflashed test package](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45917834267/artifacts/15162279777). Exact-build physical testing is still pending.
 
 Existing releases and screenshots retain their original labels. The new candidate needs physical testing of that exact build; no flashing or upstream submission has been performed. The separate repeater-only preparation remains on [upstream/repeater-only](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/tree/upstream/repeater-only).
 

@@ -1,3 +1,6 @@
+TRANSMIT (TX) WARNING
+Before enabling transmit (TX), check the radio rules for your country, state/province and local area. Make sure the frequency, power, mode and antenna setup are permitted, and obtain any required licence or authorization. You are responsible for lawful operation; this experimental firmware does not guarantee regulatory compliance.
+
 PortaMeshRF branding update: see PORTAMESHRF.md for current setup and key instructions.
 Internal settings/meshtastic.ppma names are retained for upgrade compatibility.
 

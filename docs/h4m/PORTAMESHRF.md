@@ -1,5 +1,8 @@
 # PortaMeshRF: setup, channels and keys
 
+> [!WARNING]
+> **Before transmitting (TX):** check the radio rules for your country, state/province and local area. Make sure the frequency, power, mode and antenna setup are permitted, and obtain any required licence or authorization. You are responsible for lawful operation; this experimental firmware does not guarantee regulatory compliance.
+
 Open **Transceiver > PortaMeshRF**. The app is independent and compatible with the Meshtastic® protocol; it is not an official Meshtastic product.
 
 ## Connect to another node
