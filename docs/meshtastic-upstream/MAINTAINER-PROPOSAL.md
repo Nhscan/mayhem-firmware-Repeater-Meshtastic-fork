@@ -1,4 +1,6 @@
-# Maintainer discussion proposal: Meshtastic on PortaPack
+# Maintainer discussion proposal: PortaMeshRF on PortaPack
+
+PortaMeshRF is the name of this fork's messaging app. References to Meshtastic below identify protocol compatibility, source attribution or the historical upstream review. The rename does not resolve the previously measured upstream integration size limit.
 Prepared 23 November 2026 by Nhscan. Draft for human review before sharing upstream.
 
 ## Request
@@ -7,7 +9,7 @@ Would the Mayhem maintainers consider a smaller, external Meshtastic app, or ano
 I understand that [the original PR #3306](https://github.com/portapack-mayhem/mayhem-firmware/pull/3306) was closed because the full implementation changed too much of the base firmware. This proposal acknowledges [that decision](https://github.com/portapack-mayhem/mayhem-firmware/pull/3306#issuecomment-6414594620); it is not a request to merge the same broad change again. The earlier [invitation to discuss the design](https://github.com/portapack-mayhem/mayhem-firmware/pull/3306#issuecomment-5479880314) is useful context, rather than an indication that the current design is approved.
 
 ## Existing work and evidence
-My [separate fork](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork) builds on the original software-LoRa/Meshtastic work by Alexey Verhogladov (verhogladov), with attribution retained. AI assistance has been used for development, investigation and documentation.
+My [separate fork](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork) builds on the original software-LoRa/Meshtastic work by Alexey Verhogladov (verhogladov), with attribution retained. AI assistance has been used for development, investigation and documentation.
 
 I have tested text transmission and reception between my HackRF/PortaPack and a LILYGO Meshtastic node. An imported 256-bit channel PSK worked for text in both directions on an earlier fork build. Later LongFast testing on n_261121_rxwin produced a three-screen screenshot showing five HackRF messages received by the home node and decoded by OpenWebRX.
 
@@ -27,7 +29,7 @@ The measurement excludes Auto Repeater, preserves upstream's normal built-in bas
 | Firmware image limit | 1,048,576 bytes |
 | Overflow | 109,576 bytes, about 107 KiB |
 
-[Diagnostic build and logs](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45275799111).
+[Diagnostic build and logs](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45275799111).
 
 The M0 application and M4 radio code compiled and linked, but final image generation failed on size. This was not a successful firmware build, and there is no flashable package from that candidate. A small external launcher by itself does not solve the footprint when the implementation remains in main flash.
 

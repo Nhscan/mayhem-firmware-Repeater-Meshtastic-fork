@@ -1,4 +1,6 @@
-# Meshtastic upstream submission preparation
+# PortaMeshRF upstream preparation
+
+PortaMeshRF is the name of this fork's messaging app. References to Meshtastic below identify protocol compatibility, source attribution or the historical upstream review. The rename does not resolve the previously measured upstream integration size limit.
 
 Target: portapack-mayhem/mayhem-firmware, next.
 Clean upstream baseline: c27dcfceaddab8cddfb341c787018d26f5136e92.
@@ -83,7 +85,7 @@ The measurement candidate compiled the M0 application and M4 radio code, but fin
 - Required image size: 1,158,152 bytes.
 - HackRF firmware limit: 1,048,576 bytes.
 - Excess: 109,576 bytes (about 107 KiB).
-- Run: https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45275799111
+- Run: https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45275799111
 
 This is a size failure, not a passing firmware package. No flashable image from this candidate is offered.
 The candidate retains the full internal UI for measurement, excludes the repeater and global baseband relocation, and places LoRa RX/TX on SD.

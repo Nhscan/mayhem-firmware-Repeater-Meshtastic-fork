@@ -1,4 +1,6 @@
-# Add experimental Meshtastic software-LoRa transceiver
+# Add experimental PortaMeshRF software-LoRa transceiver
+
+PortaMeshRF is the name of this fork's messaging app. References to Meshtastic below identify protocol compatibility, source attribution or the historical upstream review. The rename does not resolve the previously measured upstream integration size limit.
 
 This draft follows the current upstream PR template. It is preparation material and is not ready for submission.
 
