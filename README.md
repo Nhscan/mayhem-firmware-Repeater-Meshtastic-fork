@@ -3,15 +3,13 @@
 > [!WARNING]
 > **Before transmitting (TX):** check the radio rules for your country, state/province and local area. Make sure the frequency, power, mode and antenna setup are permitted, and obtain any required licence or authorization. You are responsible for lawful operation; this experimental firmware does not guarantee regulatory compliance.
 
-## Upstream sync test build
+## Source only: build it yourself
 
-Mayhem `next` at `c95f603` is merged into this fork, retaining Auto Repeater, the later LongFast receive fixes and PortaMeshRF's new name/icon. The Horus decoder and upstream shutdown/memory fixes are included. LoRa IPC IDs were moved to avoid the new Horus IDs.
+**This repository distributes source code only.** Prebuilt firmware packages are no longer offered here: the old release downloads and Actions build packages have been removed. To use PortaMeshRF or Auto Repeater, build the firmware yourself from this source. See [Build the firmware](#build-the-firmware) below.
 
-**Candidate version: `pmesh_b889722`.** [Download the complete matching SD and Windows package](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45920200405/artifacts/15164580300) | [Build and validation logs](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45920200405) | [What was merged](docs/h4m/UPSTREAM-SYNC.md).
+Mayhem `next` at `c95f603` is merged into this fork, retaining Auto Repeater, the later LongFast receive fixes and PortaMeshRF's new name/icon. The Horus decoder and upstream shutdown/memory fixes are included. LoRa IPC IDs were moved to avoid the new Horus IDs. [What was merged](docs/h4m/UPSTREAM-SYNC.md).
 
-The ARM build, repeater/mesh protocol regressions, memory/layout, firmware identity/checksum, all 105 app checks and updater archive checks passed. The package contains SD `APPS`/`BASEBAND`, `H4M_PORTAMESHRF.ppfw.tar`, the raw firmware BIN, checksums and the Windows `.bat`/tools. See [installation instructions](docs/h4m/INSTALL.txt) before choosing to test it. Actions downloads may require a GitHub sign-in.
-
-**Exact-build hardware testing remains pending.** Nothing has been flashed or submitted upstream. All code/branch changes are in Nhscan's fork. Older releases/screenshots below describe their original builds.
+Nothing has been submitted upstream. All code/branch changes are in Nhscan's fork.
 
 ## PortaMeshRF branding update
 
@@ -21,19 +19,10 @@ PortaMeshRF is independently developed and compatible with the Meshtastic® prot
 
 - [Current setup and key-import instructions](docs/h4m/PORTAMESHRF.md)
 - [Rebranding candidate with the later receive-window fixes](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/tree/build/portameshrf-branding)
-- [PortaMeshRF build checks and matching test downloads](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/workflows/portameshrf-branding.yml)
-
-The renamed candidate **pmesh_fd78b7c** passed the ARM build, app-name metadata, memory/layout, checksum and updater-archive checks. [Download the unflashed test package](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45917834267/artifacts/15162279777). Exact-build physical testing is still pending.
-
-Existing releases and screenshots retain their original labels. The new candidate needs physical testing of that exact build; no flashing or upstream submission has been performed. The separate repeater-only preparation remains on [upstream/repeater-only](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/tree/upstream/repeater-only).
 
 A fork of [PortaPack Mayhem](https://github.com/portapack-mayhem/mayhem-firmware) with Auto Repeater and experimental PortaMeshRF apps compatible with the Meshtastic protocol for **HackRF One + PortaPack H4M**. The complete modified source, build instructions and credits are included.
 
-**Start here:** [Download and flash](#download-and-install-ar09) | [Auto Repeater quick start](#auto-repeater-quick-start) | [Meshtastic setup](#meshtastic-setup-and-keys) | [Import a key](#import-a-key-from-the-sd-card) | [Troubleshooting](#meshtastic-troubleshooting) | [Changes](CHANGELOG.md)
-
-**Previous H4M test firmware (old app label):** [Download H4M_AR09.ppfw.tar](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/releases/download/ar09/H4M_AR09.ppfw.tar) · [Release notes and checksum](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/releases/tag/ar09). Built on the [November 21 Mayhem nightly](https://github.com/portapack-mayhem/mayhem-firmware/releases/tag/nightly-tag-2026-11-21). GitHub checks the compiled package. On-device confirmation of ar09 is pending.
-
-The [ar06 release](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/releases/tag/ar06) is the previous H4M build with a hardware-confirmed Meshtastic Settings fix.
+**Start here:** [Build the firmware](#build-the-firmware) | [Auto Repeater quick start](#auto-repeater-quick-start) | [Meshtastic setup](#meshtastic-setup-and-keys) | [Import a key](#import-a-key-from-the-sd-card) | [Troubleshooting](#meshtastic-troubleshooting) | [Changes](CHANGELOG.md)
 
 ![Auto Repeater demo](docs/h4m/media/demo-preview.gif)
 
@@ -61,39 +50,15 @@ An independent PortaMeshRF client compatible with the Meshtastic protocol that r
 |:---:|:---:|
 | ![Meshtastic chat tab](docs/h4m/media/04-meshtastic-chat.png) | ![Meshtastic radio setup](docs/h4m/media/05-meshtastic-radio.png) |
 
-## Download and install ar09
+## Build the firmware
 
-1. Download [H4M_AR09.ppfw.tar](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/releases/download/ar09/H4M_AR09.ppfw.tar). Keep the TAR intact and copy it into the SD card’s `FIRMWARE` folder. If you download the Actions ZIP instead, extract the ZIP once to get that TAR.
-2. On an H4M running this fork’s ar05, ar06 or ar08 firmware, open **Utilities > Flash Utility**, select **H4M_AR09.ppfw.tar**, and let the update finish.
-3. After restarting, open **About** and check for **n_261121_ar09**. The TAR includes the matching apps and baseband images.
-4. Open **Transceivers (TRX)** and select **Auto Repeater** or **PortaMeshRF** (called Meshtastic in the older release).
+Build the firmware from source by following [Source and building](#source-and-building). The `oci` build target produces a Flash Utility package (`portapack-mayhem_OCI.ppfw.tar`) in the build folder.
 
-Older v0.2.x builds can use the [ar05 Windows USB instructions](#download-and-install-ar05) to install the internal updater first.
+1. Copy the `.ppfw.tar` intact into the SD card's `FIRMWARE` folder.
+2. On the PortaPack, open **Utilities > Flash Utility**, select the TAR, and let the update finish.
+3. After restarting, open **About** to confirm your build's version, then open **Transceivers (TRX)** and select **Auto Repeater** or **PortaMeshRF**.
 
-## Previous firmware · ar06
-
-1. Download [H4M_AR06.ppfw.tar](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/releases/download/ar06/H4M_AR06.ppfw.tar) and copy it intact into the SD card's `FIRMWARE` folder.
-2. On a HackRF One + PortaPack H4M running ar05, open Flash Utility and select the TAR.
-3. After reboot, verify that About shows **n_261109_ar06**.
-
-The update includes matching apps and baseband images. The owner confirmed that the Meshtastic Settings fix works on their H4M.
-
-## Download and install ar05
-
-**[Download the complete SD-card and Windows flash package](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/releases/download/ar05/H4M-Meshtastic-ar05-SD-and-Flash.zip)**
-
-Firmware version **`n_261109_ar05`**. This community test package contains matching APPS, BASEBAND, firmware, Windows USB tools/drivers, instructions and checksums. [Release notes](docs/h4m/AR05-RELEASE-NOTES.md) | [Changelog](CHANGELOG.md)
-
-1. Extract the ZIP. Copy everything **inside SD_CARD** to the SD card root. Merge folders and replace matching files while retaining your other data.
-2. Open **Utilities > Flash Utility** on the PortaPack and select **H4M_AR05_FIX.ppfw.tar**.
-3. Wait for completion, restart, and confirm About shows **n_261109_ar05**.
-4. Open **Transceivers / TRX > PortaMeshRF** (called Meshtastic in older releases).
-
-Use the corrected **FIX** archive supplied in the release. Earlier ar05 packaging used extended TAR headers unsupported by the updater.
-
-**Windows USB alternative:** Copy the SD files first. Connect USB, select **HackRF mode** on the PortaPack, and run **USB_FLASH_WINDOWS/START_H4M.bat**. It backs up flash, writes ar05 and verifies a byte-for-byte read-back. Wait for SUCCESS before restarting. Older custom v0.2.x builds require USB because they lack the internal updater.
-
-Use this build's matching **104 PPMA apps**, two standalone apps and BASEBAND files. Mixing builds can cause app compatibility errors. [Previous v0.3.1 release](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/releases/tag/v0.3.1)
+Use the APPS and BASEBAND files from the same build. Mixing builds can cause app compatibility errors.
 
 ## Auto Repeater
 
@@ -246,7 +211,7 @@ On each radio, send a distinct short text and check for those exact words on the
 | Import key does nothing | Highlight an enabled custom channel. Use a key-only .TXT in a supported encoding, without BOM, labels or spaces. Ar05 has no import-error dialog. |
 | Open channel cannot decode | Both sides must use a truly empty PSK. The default AQ== public key is still an encryption key and differs from no key. |
 | Old or outdated PPMA error | Copy APPS and BASEBAND from the same release as the firmware. |
-| BAD FIRMWARE FILE OR W/R ERR during TAR flashing | Use H4M_AR05_FIX.ppfw.tar from the corrected package. Check the download checksum and SD-card copy. The Windows launcher provides an alternative with read-back verification. |
+| BAD FIRMWARE FILE OR W/R ERR during TAR flashing | Copy the `.ppfw.tar` from your build to the SD card again, intact (do not extract it), and check the SD-card copy. Rebuild if the error persists. |
 | One direction works or messages arrive intermittently | Check TX/RX mode, antenna, frequency and receive gain. Separate nearby radios to reduce overload. Repeat short messages in each direction and record which ones arrive. |
 | Long messages fail while short ones work | Receiver buffering is limited, particularly at SF7. Start with short texts and report preset, length and direction. |
 
