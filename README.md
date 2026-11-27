@@ -3,6 +3,16 @@
 > [!WARNING]
 > **Before transmitting (TX):** check the radio rules for your country, state/province and local area. Make sure the frequency, power, mode and antenna setup are permitted, and obtain any required licence or authorization. You are responsible for lawful operation; this experimental firmware does not guarantee regulatory compliance.
 
+## Upstream sync test build
+
+Mayhem `next` at `c95f603` is merged into this fork, retaining Auto Repeater, the later LongFast receive fixes and PortaMeshRF's new name/icon. The Horus decoder and upstream shutdown/memory fixes are included. LoRa IPC IDs were moved to avoid the new Horus IDs.
+
+**Candidate version: `pmesh_b889722`.** [Download the complete matching SD and Windows package](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45920200405/artifacts/15164580300) | [Build and validation logs](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45920200405) | [What was merged](docs/h4m/UPSTREAM-SYNC.md).
+
+The ARM build, repeater/mesh protocol regressions, memory/layout, firmware identity/checksum, all 105 app checks and updater archive checks passed. The package contains SD `APPS`/`BASEBAND`, `H4M_PORTAMESHRF.ppfw.tar`, the raw firmware BIN, checksums and the Windows `.bat`/tools. See [installation instructions](docs/h4m/INSTALL.txt) before choosing to test it. Actions downloads may require a GitHub sign-in.
+
+**Exact-build hardware testing remains pending.** Nothing has been flashed or submitted upstream. All code/branch changes are in Nhscan's fork. Older releases/screenshots below describe their original builds.
+
 ## PortaMeshRF branding update
 
 The mesh messaging app is now **PortaMeshRF**, with a new Transceiver menu name, screen title and original three-node icon. Saved channel keys, node identity, internal settings identifiers and the `meshtastic.ppma` filename are retained for upgrade compatibility.
