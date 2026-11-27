@@ -26,5 +26,6 @@ with tarfile.open(archive) as tar:
             assert struct.unpack_from('<I', data, 12)[0] == compat, member.name
             assert sum(struct.unpack('<' + 'I' * (len(data) // 4), data)) & 0xffffffff == 0
             app_count += 1
-    assert app_count == 104
+    assert app_count == 105, f'Expected 105 apps including Horus, got {app_count}'
 print(f'PASS update archive: {app_count} matching apps; last .bin is the checksummed {version} firmware')
+
