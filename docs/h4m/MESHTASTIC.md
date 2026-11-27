@@ -1,8 +1,10 @@
-# Meshtastic on the PortaPack: a guide
+# PortaMeshRF on the PortaPack: a guide
+
+PortaMeshRF is independently developed and compatible with the Meshtastic® protocol. See [current setup/key instructions](PORTAMESHRF.md). Older screenshots retain their original labels.
 
 Languages: [Русский](guide.ru.md) | **English** | [Deutsch](guide.de.md) | [Español](guide.es.md)
 
-The app lives under **Transceiver → Mesh**. Four tabs across the top: Chat, Nodes, Data,
+The app lives under **Transceiver → PortaMeshRF**. Four tabs across the top: Chat, Nodes, Data,
 Setup. Move between them with a finger or the navigation cross.
 
 ## Contents

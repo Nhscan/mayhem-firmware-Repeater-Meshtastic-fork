@@ -4,7 +4,7 @@
  * This file is part of PortaPack.
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Meshtastic LoRa mesh app for HackRF + PortaPack H4M.
+ * PortaMeshRF: a Meshtastic-compatible LoRa mesh app for HackRF + PortaPack H4M.
  * Autonomous Meshtastic node (no phone/BT required).
  * Tabs: Chat, Nodes, Map, Setup.
  */
@@ -2069,7 +2069,7 @@ class MeshtasticView : public View {
     ~MeshtasticView();
 
     void focus() override;
-    std::string title() const override { return "Mesh"; }
+    std::string title() const override { return "PortaMeshRF"; }
     void set_parent_rect(const Rect new_parent_rect) override;
     void paint(Painter&) override {}
 

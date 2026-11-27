@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased: PortaMeshRF branding
+
+- Renamed the mesh app's menu entry and title to PortaMeshRF; added an original three-node icon.
+- Updated project branding and setup/key instructions, with descriptive protocol references and preserved attribution.
+- Retained internal filenames, settings keys and node identity for migration compatibility.
+- New firmware requires exact-build physical testing; previous release artifacts are unchanged.
+
+
 ## LongFast receive window fix - 2026-11-21
 
 Test firmware `n_261121_rxwin`, based on the ar10 RF meter build.

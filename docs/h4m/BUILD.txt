@@ -1,3 +1,6 @@
+PortaMeshRF branding update: see PORTAMESHRF.md for current setup and key instructions.
+Internal settings/meshtastic.ppma names are retained for upgrade compatibility.
+
 Base: nightly-tag-2026-11-09 (706fd7f91e0318fc4643e8d31f5087ececb312c4).
 Compiler: GNU Arm Embedded GCC 9.2.1 20191025. Use Ninja.
 Needs: CMake, Python3, PyYAML, lz4 CLI, dfu-util including dfu-suffix.
