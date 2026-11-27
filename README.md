@@ -296,7 +296,26 @@ The custom version is cached so CMake regeneration does not silently change app 
 
 - [PortaPack Mayhem](https://github.com/portapack-mayhem/mayhem-firmware) and its contributors. The original project README is preserved as [README-UPSTREAM.md](README-UPSTREAM.md).
 - Experimental Meshtastic software-LoRa implementation by **Alexey Verhogladov**, imported from [`mamapapa1/mayhem-firmware`, `mesh-test-1`](https://github.com/mamapapa1/mayhem-firmware/tree/mesh-test-1), commit `9d028dd349b9f38dcc897ca2a071d91adec3e851`. Existing copyright notices are retained.
-- OOK recognizers and their upstream Flipper-related acknowledgements remain in the source headers. LoRa framing sources acknowledge gr-lora_sdr and related research.
+- OOK recognizers and their upstream Flipper-related acknowledgements remain in the source headers.
+
+### LoRa PHY credits
+
+LoRa's physical layer has no public specification from its vendor. PortaMeshRF's software LoRa transmitter and receiver are built on published reverse-engineering work:
+
+- [**gr-lora_sdr**](https://github.com/tapparelj/gr-lora_sdr) (EPFL Telecommunication Circuits Laboratory, GPL-3.0). The frame layer follows its layout, and the diagonal interleaver follows its implementation directly. The header checksum uses the same equations; whitening and Hamming coding are written independently.
+- [**gr-lora**](https://github.com/rpp0/gr-lora) by Pieter Robyns et al. (2016), whose receive algorithm and interleaver formula the receiver follows.
+- **Matt Knight**'s blind analysis of the LoRa PHY and his [gr-lora](https://github.com/BastilleResearch/gr-lora), presented at GNU Radio Conference 2016.
+
+The source-file headers in `firmware/baseband/proc_lora*.cpp` and `firmware/common/lora_framing.hpp` describe exactly how closely each part follows these projects.
+
+### How PortaMeshRF uses bandwidth
+
+PortaMeshRF talks to Meshtastic nodes using one fixed LoRa bandwidth per modem preset:
+
+- Every transmitted frame (preamble, sync word, header and payload) is sent at a single bandwidth. The bandwidth is never narrowed partway through a packet.
+- Transmit and receive both take their bandwidth from the same selected preset (`preset.bw_hz`). Replies go out at the same bandwidth the preset receives on, not on a narrower channel.
+
+See `LoRaTXProcessor::configure()` and `build_frame()` in `firmware/baseband/proc_lora_tx.cpp`.
 - Windows recovery utilities/drivers are redistributed unchanged from the official `n_261109` firmware asset, with provenance in the package credits.
 
 See [LICENSE](LICENSE), [LICENSE.GPL-2.0-or-later](LICENSE.GPL-2.0-or-later), and the individual source-file notices.
