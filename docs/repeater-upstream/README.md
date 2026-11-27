@@ -1,5 +1,8 @@
 # Auto Repeater preparation branch
 
+> [!WARNING]
+> **Before transmitting (TX):** check the radio rules for your country, state/province and local area. Make sure the frequency, power, mode and antenna setup are permitted, and obtain any required licence or authorization. You are responsible for lawful operation; this experimental firmware does not guarantee regulatory compliance.
+
 The repeater-only candidate now builds and passes software validation on the 1 MiB HackRF One target. It has not been flashed or physically tested. No upstream issue, message or pull request has been sent. Craig explicitly requested preparation only.
 
 - Validated source: `d24764597b3496fafde86f21a911e9c2dc2cbfb6`.

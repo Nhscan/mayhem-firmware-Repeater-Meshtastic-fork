@@ -1,5 +1,8 @@
 # Auto Repeater user guide draft
 
+> [!WARNING]
+> **Before transmitting (TX):** check the radio rules for your country, state/province and local area. Make sure the frequency, power, mode and antenna setup are permitted, and obtain any required licence or authorization. You are responsible for lawful operation; this experimental firmware does not guarantee regulatory compliance.
+
 This describes the repeater-only test candidate `d24764597b3496fafde86f21a911e9c2dc2cbfb6`, firmware identifier `rpt_d247645`. The ARM build, host tests, memory/layout and updater checks passed. Physical testing is pending; this is not a hardware-validated release. No flashing or upstream submission has been performed.
 
 ## Candidate files and future installation
