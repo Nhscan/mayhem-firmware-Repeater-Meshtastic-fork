@@ -1,0 +1,69 @@
+name: PortaMeshRF branding build and package validation
+on:
+  push:
+    branches: [next, build/portameshrf-branding]
+    paths:
+      - 'firmware/**'
+      - '.github/workflows/portameshrf-branding.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build cmake python3-yaml python3-pyelftools python3-lz4 lz4 dfu-util
+          mkdir -p "$RUNNER_TEMP/arm"
+          wget -qO "$RUNNER_TEMP/arm/toolchain.tar.bz2" https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
+          tar -xjf "$RUNNER_TEMP/arm/toolchain.tar.bz2" -C "$RUNNER_TEMP/arm"
+          echo "$RUNNER_TEMP/arm/gcc-arm-none-eabi-9-2019-q4-major/bin" >> "$GITHUB_PATH"
+      - name: Build and validate firmware
+        run: |
+          set -o pipefail
+          version="pmesh_$(git rev-parse --short=7 HEAD)"
+          python3 tools/update_external_tier_ld.py
+          cmake -S . -B build -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DMAYHEM_CUSTOM_VERSION="$version" 2>&1 | tee configure.log
+          cmake --build build --target oci -j4 2>&1 | tee build.log
+          python3 tests/auto_repeater/check_layout.py build | tee layout.log
+          python3 tests/auto_repeater/check_runtime_memory.py build | tee memory.log
+          python3 tests/auto_repeater/check_install.py build "$version" | tee install.log
+          python3 - <<'PY'
+          from pathlib import Path
+          app=Path('build/firmware/application/meshtastic.ppma').read_bytes()
+          assert app[16:32].split(b'\0',1)[0] == b'PortaMeshRF'
+          print('PASS app menu metadata: PortaMeshRF; legacy app identity retained')
+          PY
+      - name: Package matching SD and flash files
+        run: |
+          version="pmesh_$(git rev-parse --short=7 HEAD)"
+          mkdir -p candidate/SD_CARD/FIRMWARE
+          cp -r build/firmware/firmware_tar/APPS build/firmware/firmware_tar/BASEBAND candidate/SD_CARD/
+          tar --format=ustar -cf candidate/SD_CARD/FIRMWARE/H4M_PORTAMESHRF.ppfw.tar -C build/firmware/firmware_tar APPS BASEBAND FIRMWARE
+          python3 tests/auto_repeater/check_update_archive.py candidate/SD_CARD/FIRMWARE/H4M_PORTAMESHRF.ppfw.tar "$version"
+          cp build/firmware/portapack-mayhem-firmware.bin candidate/SD_CARD/FIRMWARE/PortaMeshRF.bin
+          git rev-parse HEAD > candidate/SOURCE-COMMIT.txt
+          echo "$version" > candidate/FIRMWARE-VERSION.txt
+          cp docs/h4m/PORTAMESHRF.md candidate/PORTAMESHRF.md
+          sha256sum candidate/SD_CARD/FIRMWARE/* > candidate/SHA256SUMS.txt
+      - name: Save unflashed test candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: PortaMeshRF-${{ github.ref_name == 'next' && 'next' || 'rx-window' }}-${{ github.sha }}
+          path: candidate/
+      - name: Save validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PortaMeshRF-validation-${{ github.sha }}
+          path: |
+            configure.log
+            build.log
+            layout.log
+            memory.log
+            install.log
+          if-no-files-found: warn

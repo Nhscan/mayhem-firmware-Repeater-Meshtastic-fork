@@ -1,3 +1,6 @@
+PortaMeshRF branding update: see PORTAMESHRF.md for current setup and key instructions.
+Internal settings/meshtastic.ppma names are retained for upgrade compatibility.
+
 H4M AUTO REPEATER + MESHTASTIC v0.3.1
 NIGHTLY BASE: n_261109 (November 9, 2026)
 CUSTOM FIRMWARE VERSION: n_261109_ar04

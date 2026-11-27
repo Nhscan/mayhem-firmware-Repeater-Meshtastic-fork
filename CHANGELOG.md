@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased: PortaMeshRF branding
+
+- Renamed the mesh app's menu entry and title to PortaMeshRF; added an original three-node icon.
+- Updated project branding and setup/key instructions, with descriptive protocol references and preserved attribution.
+- Retained internal filenames, settings keys and node identity for migration compatibility.
+- New firmware requires exact-build physical testing; previous release artifacts are unchanged.
+
+
 ## ar09 - 2026-11-21
 
 Meshtastic now reserves chat rows across display filters, restores recent messages when switching conversations with SD saving off, and keeps message-detail links aligned as the session buffer rolls over. The compose bar has a wide Write message button and a separate Clear confirmation. Radio uses the native frequency keypad with Load and an explicit Auto reset. Settings pages include a focusable Back button. The H4M build and archive checks passed. Physical-device testing is pending.
