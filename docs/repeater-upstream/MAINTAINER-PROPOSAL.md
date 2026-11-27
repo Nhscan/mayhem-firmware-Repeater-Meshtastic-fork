@@ -12,9 +12,9 @@ The SD loader checks exact size, a build-generated integrity value, read complet
 
 ## Measurements
 
-[Validated source](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/commit/d24764597b3496fafde86f21a911e9c2dc2cbfb6)
+[Validated source](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/commit/d24764597b3496fafde86f21a911e9c2dc2cbfb6)
 
-[Passing build and logs](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45519543490)
+[Passing build and logs](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45519543490)
 
 | Check | Result |
 | --- | ---: |

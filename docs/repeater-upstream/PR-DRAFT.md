@@ -14,7 +14,7 @@ Meshtastic and combined-fork updater/release changes are excluded. This contribu
 
 ## Proof it compiles
 
-[Passing build](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45519543490), source `d24764597b3496fafde86f21a911e9c2dc2cbfb6`, identifier `rpt_d247645`.
+[Passing build](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45519543490), source `d24764597b3496fafde86f21a911e9c2dc2cbfb6`, identifier `rpt_d247645`.
 
 ```text
 Space remaining in flash ROM: 1280 bytes (0.1%)

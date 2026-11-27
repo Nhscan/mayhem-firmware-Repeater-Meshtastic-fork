@@ -5,10 +5,10 @@ The repeater-only candidate now builds and passes software validation on the 1 M
 - Validated source: `d24764597b3496fafde86f21a911e9c2dc2cbfb6`.
 - Firmware identifier: `rpt_d247645`.
 - Upstream baseline: `5bc230848cb17c666f34d07b70062bed682da1a2`.
-- [Passing build and validation logs](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45519543490).
-- [Download unflashed test candidate](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45519543490/artifacts/14980265350) (GitHub sign-in may be required).
+- [Passing build and validation logs](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45519543490).
+- [Download unflashed test candidate](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45519543490/artifacts/14980265350) (GitHub sign-in may be required).
 
-The candidate artifact includes `build/firmware/portapack-mayhem_OCI.ppfw.tar`, the matching 1 MiB `portapack-mayhem-firmware.bin`, a source-commit text file and the guide. The USTAR updater archive contains APPS, the repeater-specific BASEBAND files and the firmware image. It is a repeater-only test build; Meshtastic is excluded.
+The candidate artifact includes `build/firmware/portapack-mayhem_OCI.ppfw.tar`, the matching 1 MiB `portapack-mayhem-firmware.bin`, a source-commit text file and the guide. The USTAR updater archive contains APPS, the repeater-specific BASEBAND files and the firmware image. It is a repeater-only test build; PortaMeshRF is excluded.
 
 | Validation | Result |
 | --- | --- |

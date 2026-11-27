@@ -20,7 +20,7 @@ Meshtastic, global SD-loader fallback, updater implementation changes, combined-
 
 ## Evidence
 
-[Passing GNU Arm GCC 9.2.1 / Ninja build](https://github.com/Nhscan/mayhem-firmware-Repeater-Meshtastic-fork/actions/runs/45519543490). Build identifier `rpt_d247645`.
+[Passing GNU Arm GCC 9.2.1 / Ninja build](https://github.com/Nhscan/mayhem-firmware-Repeater-PortaMeshRF-fork/actions/runs/45519543490). Build identifier `rpt_d247645`.
 
 Six regression programs pass locally and on Linux: control (including 1,000 automatic cycles), SUB parsing, actual IQ envelope recognition, capture quality/UI repaint logic, real file conversion routines and SD radio copy/integrity failure handling.
 
